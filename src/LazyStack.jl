@@ -51,7 +51,7 @@ stack(xs::AbstractArray{IT,ON}) where {IT<:AbstractArray{T,IN}} where {T,IN,ON} 
     stack_slices(xs, Val(T), Val(IN+ON))
 stack(xs::Tuple{Vararg{AbstractArray{T,IN}}}) where {T,IN} =
     stack_slices(xs, Val(T), Val(IN+1))
-stack(xs::IT...) where {IT <: AbstractArray{<:Number}} = stack(xs)
+stack(xs::AbstractArray{T}...) where {T} = stack(xs)
 
 function stack_slices(xs::AT, ::Val{T}, ::Val{N}) where {T,N,AT}
     length(xs) >= 1 || error("can't work on empty collection")
@@ -85,7 +85,9 @@ inner_ndims(x::Stacked) = ndims(x) - outer_ndims(x)
     @inbounds getindex(outer, ntuple(d -> inds[d], IN)...)::T
 end
 
-Base.eachcol(x::Stacked{T,2,<:AbstractArray{<:AbstractArray{T,1}}}) where {T} = x.slices
+if VERSION >= v"1.1"
+    Base.eachcol(x::Stacked{T,2,<:AbstractArray{<:AbstractArray{T,1}}}) where {T} = x.slices
+end
 
 Base.collect(x::Stacked{T,2,<:AbstractArray{<:AbstractArray{T,1}}}) where {T} = reduce(hcat, x.slices)
 
