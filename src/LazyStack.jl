@@ -70,7 +70,9 @@ Base.size(x::Stacked) = (size(first(x.slices))..., size(x.slices)...)
 Base.size(x::Stacked{T,N,<:Tuple}) where {T,N} = (size(first(x.slices))..., length(x.slices))
 
 Base.axes(x::Stacked) = (axes(first(x.slices))..., axes(x.slices)...)
-Base.axes(x::Stacked{T,N,<:Tuple}) where {T,N} = (axes(first(x.slices))..., axes(x.slices))
+if VERSION < v"1.1" # axes((1:9, 1:9)) == Base.OneTo(2) # on Julia 1.0
+    Base.axes(x::Stacked{T,N,<:Tuple}) where {T,N} = (axes(first(x.slices))..., axes(x.slices))
+end
 
 Base.parent(x::Stacked) = x.slices
 
