@@ -70,6 +70,7 @@ Base.size(x::Stacked) = (size(first(x.slices))..., size(x.slices)...)
 Base.size(x::Stacked{T,N,<:Tuple}) where {T,N} = (size(first(x.slices))..., length(x.slices))
 
 Base.axes(x::Stacked) = (axes(first(x.slices))..., axes(x.slices)...)
+Base.axes(x::Stacked{T,N,<:Tuple}) where {T,N} = (axes(first(x.slices))..., axes(x.slices))
 
 Base.parent(x::Stacked) = x.slices
 
