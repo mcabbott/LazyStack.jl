@@ -1,0 +1,21 @@
+name = "LazyStack"
+uuid = "1fad7336-0346-5a1a-a56f-a06ba010965b"
+authors = ["Michael Abbott"]
+version = "0.0.1"
+
+[deps]
+LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
+NamedDims = "356022a1-0364-5f58-8944-0da4b18d706f"
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+ZygoteRules = "700de1a5-db45-46bc-99cf-38207098b444"
+
+[compat]
+julia = "1"
+
+[extras]
+ForwardDiff = "f6369f11-7733-5829-9624-2563aa707210"
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+Zygote = "e88e6eb3-aa80-5325-afca-941959d7151f"
+
+[targets]
+test = ["Test", "ForwardDiff", "Zygote"]
