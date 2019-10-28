@@ -35,7 +35,7 @@ end
     @test NamedDims.names(stack(nboth)) == (:a, :b)
 
     ngen = (NamedDimsArray(ones(3), :a) for i in 1:4)
-    NamedDims.names(stack(ngen)) == (:_, :_) # ideally would do better
+    NamedDims.names(stack(ngen)) == (:a, :_)
 
 end
 @testset "errors" begin

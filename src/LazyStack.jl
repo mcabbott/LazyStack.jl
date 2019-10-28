@@ -3,9 +3,8 @@ module LazyStack
 #=
 ToDo:
 
-test failures! dispatch issues
 ZygoteRules
-convert Tuples to Vectors?
+Tuples -- make as fast as LazyArrays.Hcat
 
 =#
 
@@ -153,7 +152,8 @@ function stack_iter(itr)
     @inbounds copyto!(view(v, 1:prod(s)), val)
 
     w = stack_rest(v, 0, n, s, itr, state)::Vector
-    reshape(w, s..., outsize...)::Array
+    z = reshape(w, s..., outsize...)::Array
+    maybe_add_names(z, val)
 end
 
 function stack_rest(v, i, n, s, itr, state)
@@ -219,6 +219,10 @@ function stack(xs::Base.Generator{<:Iterators.ProductIterator{<:Tuple{<:NamedDim
     l = (ntuple(_ -> :_, ndims(w)-length(L))..., L...)
     NamedDimsArray(w, l)
 end
+
+maybe_add_names(A, a) = A
+maybe_add_names(A, a::NamedDimsArray{L}) where {L} =
+    NamedDimsArray(A, (L..., ntuple(_ -> :_, ndims(A) - ndims(a))...))
 
 #===== Zygote =====#
 
