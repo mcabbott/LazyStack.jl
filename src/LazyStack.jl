@@ -132,6 +132,8 @@ stack(tup::AbstractArray...) = stack_iter(tup)
 stack(arr::AbstractArray{<:AbstractArray}) = stack_iter(arr)
 stack(tup::Tuple{Vararg{AbstractArray}}) = stack_iter(tup)
 
+using UnsafeArrays
+
 function stack_iter(itr)
     if itr isa Tuple || itr isa Base.Generator{<:Tuple} || ndims(itr) == 1
         outsize = tuple(:)
@@ -148,7 +150,7 @@ function stack_iter(itr)
     n = Base.haslength(itr) ? prod(s)*length(itr) : nothing
 
     v = Vector{eltype(val)}(undef, something(n, prod(s)))
-    @inbounds copyto!(view(v, 1:prod(s)), no_offsets(val))
+    @inbounds copyto!(uview(v, 1:prod(s)), no_offsets(val))
 
     w = stack_rest(v, 0, n, s, itr, state)::Vector
     z = reshape(w, s..., outsize...)::Array
@@ -167,7 +169,7 @@ function stack_rest(v, i, n, s, itr, state)
         i += 1
         if eltype(val) <: eltype(v)
             if n isa Int
-                @inbounds copyto!(view(v, i*prod(s)+1 : (i+1)*prod(s)), no_offsets(val))
+                @inbounds copyto!(uview(v, i*prod(s)+1 : (i+1)*prod(s)), no_offsets(val))
             else
                 append!(v, vec(no_offsets(val)))
             end
@@ -177,7 +179,7 @@ function stack_rest(v, i, n, s, itr, state)
             v′ = similar(v, T′)
             copyto!(v′, v)
             if n isa Int
-                @inbounds copyto!(view(v′, i*prod(s)+1 : (i+1)*prod(s)), no_offsets(val))
+                @inbounds copyto!(uview(v′, i*prod(s)+1 : (i+1)*prod(s)), no_offsets(val))
             else
                 append!(v′, vec(no_offsets(val)))
             end

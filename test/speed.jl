@@ -39,7 +39,7 @@ t1 = Tuple(v1);
 
 @btime reduce(hcat, [rand(10^3) for i=1:10^3]); # 1.900 ms (1003 allocations: 15.39 MiB)
 @btime reduce(hcat, (rand(10^3) for i=1:10^3)); # 2.866 s (3999 allocations: 3.74 GiB)
-@btime stack(rand(10^3) for i=1:10^3);          # 1.645 ms (2004 allocations: 15.43 MiB)
+@btime stack(rand(10^3) for i=1:10^3);          # 1.813 ms (1009 allocations: 15.38 MiB)
 @btime stack([rand(10^3) for i=1:10^3]);        # 832.543 μs (1002 allocations: 7.76 MiB)
 @btime [rand(10^3) for i=1:10^3];               # 858.156 μs (1001 allocations: 7.76 MiB)
 
