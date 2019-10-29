@@ -1,4 +1,5 @@
-using Test, LazyStack, NamedDims, Zygote
+using Test, LazyStack
+using NamedDims, Zygote
 
 @testset "basics" begin
 
@@ -48,5 +49,16 @@ end
 
     @test Zygote.gradient((x,y) -> sum(stack(x,y)), ones(2), ones(2)) == ([1,1], [1,1])
     @test Zygote.gradient((x,y) -> sum(stack([x,y])), ones(2), ones(2)) == ([1,1], [1,1])
+
+end
+@testset "readme" begin
+
+    using LazyStack: Stacked
+
+    @test stack([zeros(2,2), ones(2,2)]) isa Stacked{Float64, 3, <:Vector{<:Matrix}}
+    @test stack([1,2,3], 4:6) isa Stacked{Int, 2, <:Tuple{<:Vector, <:UnitRange}}
+
+    @test stack([i,2i] for i in 1:5) isa Matrix{Int}
+    @test stack([1,2], [3.0, 4.0], [5im, 6im]) isa Matrix{Number}
 
 end

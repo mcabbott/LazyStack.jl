@@ -17,18 +17,19 @@ v4 = [rand(10^4) for i=1:10^4];
 
 # Tuple of Arrays
 
-@btime hcat($v1...);        # 737.759 ns (5 allocations: 1.08 KiB)
-@btime hcat($(v1...,)...);  # 178.379 ns (4 allocations: 1.03 KiB)
-@btime collect(stack($v1...)); # 1.501 μs (3 allocations: 1008 bytes) -- was quicker I swear
-@btime collect(stack($(Tuple(v1)))); # 1.032 μs (2 allocations: 912 bytes)
-@btime collect($(stack(Tuple(v1)))); # 1.065 μs (1 allocation: 896 bytes)
+t1 = Tuple(v1);
 
-@btime ($(hcat(v1...))[9,9]);      # 1.424 ns (0 allocations: 0 bytes)
-@btime ($(stack(Tuple(v1))))[9,9]; # 1.700 ns (0 allocations: 0 bytes)
-@btime size($(stack(Tuple(v1))));  # 1.421 ns (0 allocations: 0 bytes)
+@code_warntype stack(t1)
 
-@btime collect(Hcat($v1...));       # 595.599 ns (3 allocations: 1008 bytes) -- match this
-@btime collect(Hcat($(v1...,)...)); # 149.001 ns (3 allocations: 1008 bytes)
+@btime hcat($t1...);          #   178.379 ns (4 allocations: 1.03 KiB)
+
+@btime collect(stack($t1));   # 1.032 μs (2 allocations: 912 bytes) -- was quicker I swear
+@btime collect($(stack(t1))); # 1.065 μs (1 allocation: 896 bytes)
+
+@btime collect(Hcat($t1...)); # 149.001 ns (3 allocations: 1008 bytes) -- match this
+
+@btime $(hcat(t1...))[9,9]    # 1.424 ns (0 allocations: 0 bytes)
+@btime $(stack(t1))[9,9]      # 1.700 ns (0 allocations: 0 bytes)
 
 # Generators
 
