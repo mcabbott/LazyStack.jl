@@ -1,4 +1,4 @@
-using LazyStack, BenchmarkTools, JuliennedArrays
+using LazyStack, BenchmarkTools, JuliennedArrays, LazyArrays
 
 # Array of Arrays
 
@@ -26,6 +26,9 @@ v4 = [rand(10^4) for i=1:10^4];
 @btime ($(hcat(v1...))[9,9]);      # 1.424 ns (0 allocations: 0 bytes)
 @btime ($(stack(Tuple(v1))))[9,9]; # 1.700 ns (0 allocations: 0 bytes)
 @btime size($(stack(Tuple(v1))));  # 1.421 ns (0 allocations: 0 bytes)
+
+@btime collect(Hcat($v1...));       # 595.599 ns (3 allocations: 1008 bytes) -- match this
+@btime collect(Hcat($(v1...,)...)); # 149.001 ns (3 allocations: 1008 bytes)
 
 # Generators
 
