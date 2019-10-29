@@ -1,4 +1,4 @@
-using Test, LazyStack, NamedDims
+using Test, LazyStack, NamedDims, Zygote
 
 @testset "basics" begin
 
@@ -42,5 +42,11 @@ end
 
     @test_throws Exception stack(x for x in 1:0)
     @test_throws Exception stack(1:n for n in 1:3)
+
+end
+@testset "zygote" begin
+
+    @test Zygote.gradient((x,y) -> sum(stack(x,y)), ones(2), ones(2)) == ([1,1], [1,1])
+    @test Zygote.gradient((x,y) -> sum(stack([x,y])), ones(2), ones(2)) == ([1,1], [1,1])
 
 end

@@ -3,7 +3,6 @@ module LazyStack
 #=
 ToDo:
 
-ZygoteRules
 Tuples -- make as fast as LazyArrays.Hcat
 
 =#
@@ -226,5 +225,18 @@ maybe_add_names(A, a::NamedDimsArray{L}) where {L} =
 
 #===== Zygote =====#
 
+using ZygoteRules: @adjoint
+
+@adjoint function stack(vec::AbstractArray{<:AbstractArray{<:Any,IN}}) where {IN}
+    stack(vec), Δ -> ([view(Δ, ntuple(_->(:),IN)..., Tuple(I)...) for I in eachindex(vec)],)
+end
+
+@adjoint function stack(tup::Tuple{Vararg{<:AbstractArray{<:Any,IN}}}) where {IN}
+    stack(tup), Δ -> (ntuple(i -> view(Δ, ntuple(_->(:),IN)..., i), length(tup)),)
+end
+
+@adjoint function stack(gen::Base.Generator)
+    stack(gen), Δ -> error("not yet!")
+end
 
 end # module
