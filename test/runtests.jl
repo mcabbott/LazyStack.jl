@@ -1,5 +1,5 @@
 using Test, LazyStack
-using NamedDims, Zygote
+using OffsetArrays, NamedDims, Zygote
 
 @testset "basics" begin
 
@@ -37,6 +37,20 @@ end
 
     ngen = (NamedDimsArray(ones(3), :a) for i in 1:4)
     NamedDims.names(stack(ngen)) == (:a, :_)
+
+end
+@testset "offset" begin
+
+    oin = [OffsetArray(ones(3), 3:5) for i in 1:4]
+    @test axes(stack(oin)) == (3:5, 1:4)
+    @test axes(copy(stack(oin))) == (3:5, 1:4)
+
+    oout = OffsetArray([ones(3) for i in 1:4], 11:14)
+    @test axes(stack(oout)) == (1:3, 11:14)
+    @test axes(copy(stack(oout))) ==  (1:3, 11:14)
+
+    ogen = (OffsetArray([3,4,5], 3:5) for i in 1:4)
+    @test axes(stack(ogen)) == (3:5, 1:4)
 
 end
 @testset "errors" begin

@@ -148,11 +148,13 @@ function stack_iter(itr)
     n = Base.haslength(itr) ? prod(s)*length(itr) : nothing
 
     v = Vector{eltype(val)}(undef, something(n, prod(s)))
-    @inbounds copyto!(view(v, 1:prod(s)), val)
+    @inbounds copyto!(view(v, 1:prod(s)), no_offsets(val))
 
     w = stack_rest(v, 0, n, s, itr, state)::Vector
     z = reshape(w, s..., outsize...)::Array
-    maybe_add_names(z, val)
+
+    z′ = maybe_add_offsets(z, val)
+    maybe_add_names(z′, val)
 end
 
 function stack_rest(v, i, n, s, itr, state)
@@ -165,9 +167,9 @@ function stack_rest(v, i, n, s, itr, state)
         i += 1
         if eltype(val) <: eltype(v)
             if n isa Int
-                @inbounds copyto!(view(v, i*prod(s)+1 : (i+1)*prod(s)), val)
+                @inbounds copyto!(view(v, i*prod(s)+1 : (i+1)*prod(s)), no_offsets(val))
             else
-                append!(v, vec(val))
+                append!(v, vec(no_offsets(val)))
             end
         else
             T′ = Base.promote_typejoin(eltype(v), eltype(val))
@@ -175,15 +177,23 @@ function stack_rest(v, i, n, s, itr, state)
             v′ = similar(v, T′)
             copyto!(v′, v)
             if n isa Int
-                @inbounds copyto!(view(v′, i*prod(s)+1 : (i+1)*prod(s)), val)
+                @inbounds copyto!(view(v′, i*prod(s)+1 : (i+1)*prod(s)), no_offsets(val))
             else
-                append!(v′, vec(val))
+                append!(v′, vec(no_offsets(val)))
             end
             return stack_rest(v′, i, n, s, itr, state)
         end
 
     end
 end
+
+using OffsetArrays
+
+no_offsets(a) = a
+no_offsets(a::OffsetArray) = parent(a)
+
+maybe_add_offsets(A, a) = A
+maybe_add_offsets(A, a::OffsetArray) = OffsetArray(A, axes(a)..., axes(A, ndims(A)))
 
 #===== NamedDims =====#
 
