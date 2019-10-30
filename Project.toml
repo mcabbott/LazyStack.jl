@@ -12,9 +12,9 @@ UnsafeArrays = "c4a57d5a-5b31-53a6-b365-19f8c011fbd6"
 ZygoteRules = "700de1a5-db45-46bc-99cf-38207098b444"
 
 [compat]
-NamedDims = ">= 0.2"
-OffsetArrays = ">= 0.11"
-ZygoteRules = ">= 0.1"
+NamedDims = "0.2, 1"
+OffsetArrays = "0.11, 1"
+ZygoteRules = "0.1, 1"
 julia = "1"
 
 [extras]
