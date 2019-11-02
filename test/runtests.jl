@@ -15,6 +15,22 @@ using OffsetArrays, NamedDims, Zygote
     @test stack(v34[i] for i in 1:4) isa Array
 
 end
+@testset "generators" begin
+
+    g234 = (ones(2) .* (10i + j) for i in 1:3, j in 1:4)
+    @test stack(g234) == stack(collect(g234))
+
+    @test stack(Iterators.filter(_ -> true, g234)) == reshape(stack(g234), 2,:)
+
+    @test stack(Iterators.drop(g234, 2)) == reshape(stack(g234), 2,:)[:, 3:end]
+
+    g16 = (ones(1) .* (10i + j) for j in 1:3 for i in 1:2) # Iterators.Flatten
+    @test stack(collect(g16)) == stack(g16)
+
+    g29 = (fill(i,2) for i=1:9)
+    @test stack(Iterators.reverse(g29)) == reverse(stack(g29), dims=2)
+
+end
 @testset "types" begin
 
     @test stack([1:3 for _=1:2]...) isa LazyStack.Stacked{Int,2,<:Tuple{UnitRange,UnitRange}}
@@ -22,6 +38,20 @@ end
     @test eltype(stack(1:3, ones(3))) == Real
     @test eltype(stack([1:3, ones(3)])) == Real
     @test eltype(stack(i==1 ? (1:3) : ones(3) for i in 1:2)) == Real
+
+    acc = []
+    for i=1:3
+        push!(acc, fill(i, 4))
+    end
+    @test stack(acc) isa Array{Int}
+    push!(acc, rand(4))
+    @test stack(acc) isa Array{Real}
+
+    acc = Array[]
+    for i=1:3
+        push!(acc, fill(i, 4))
+    end
+    stack(acc) isa Array{Int}
 
 end
 @testset "names" begin
@@ -55,8 +85,11 @@ end
 end
 @testset "errors" begin
 
-    @test_throws Exception stack(x for x in 1:0)
-    @test_throws Exception stack(1:n for n in 1:3)
+    @test_throws ArgumentError stack([])
+    @test_throws ArgumentError stack(x for x in 1:0)
+
+    @test_throws DimensionMismatch stack(1:n for n in 1:3)
+    @test_throws DimensionMismatch stack([1:n for n in 1:3])
 
 end
 @testset "zygote" begin

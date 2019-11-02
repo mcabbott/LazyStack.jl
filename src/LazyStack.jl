@@ -1,12 +1,5 @@
 module LazyStack
 
-#=
-ToDo:
-
-Tuples -- make as fast as LazyArrays.Hcat
-
-=#
-
 export stack
 
 #===== Slices =====#
@@ -52,10 +45,11 @@ stack(xs::Tuple{Vararg{AbstractArray{T,IN}}}) where {T,IN} =
 stack(xs::AbstractArray{T}...) where {T} = stack(xs)
 
 function stack_slices(xs::AT, ::Val{T}, ::Val{N}) where {T,N,AT}
-    length(xs) >= 1 || error("can't work on empty collection")
+    length(xs) >= 1 || throw(ArgumentError("stacking an empty collection is not allowed"))
     s = size(first(xs))
     for x in xs
-        size(x) == s || error("must be same size")
+        size(x) == s || throw(DimensionMismatch(
+            "slices being stacked must share a common size. Expected $s, got $(size(x))"))
     end
     Stacked{T, N, AT}(xs)
 end
@@ -94,7 +88,16 @@ Base.collect(x::Stacked{T,2,<:AbstractArray{<:AbstractArray{T,1}}}) where {T} = 
 
 Base.view(x::Stacked{T,2,<:AbstractArray{<:AbstractArray{T,1}}}, ::Colon, i::Int) where {T} = x.slices[i]
 
-# Base.sum(A::Stacked) = sum(sum(x) for x in A.slices)
+#===== ndims & iterators =====#
+
+ndims(A) = Base.ndims(A)
+
+ndims(::Tuple) = 1
+
+ITERS = [:Flatten, :Drop, :Filter]
+for iter in ITERS
+    @eval ndims(::Iterators.$iter) = 1
+end
 
 #===== Iteration =====#
 
@@ -128,6 +131,11 @@ julia> stack(1:3, ones(3), zeros(3) .+ im)
 ```
 """
 stack(gen::Base.Generator) = stack_iter(gen)
+for iter in ITERS
+    @eval stack(gen::Iterators.$iter) = stack_iter(gen)
+end
+stack(arr::AbstractArray{Any}) = stack_iter(arr) # e.g. from arr=[]; push!(arr, rand(3)); ...
+
 stack(tup::AbstractArray...) = stack_iter(tup)
 stack(arr::AbstractArray{<:AbstractArray}) = stack_iter(arr)
 stack(tup::Tuple{Vararg{AbstractArray}}) = stack_iter(tup)
@@ -141,7 +149,7 @@ function stack_iter(itr)
     end
 
     zed = iterate(itr)
-    zed === nothing && error("can't work on empty generators?")
+    zed === nothing && throw(ArgumentError("stacking an empty collection is not allowed"))
     val, state = zed
 
     s = size(val)
@@ -162,7 +170,8 @@ function stack_rest(v, i, n, s, itr, state)
         zed = iterate(itr, state)
         zed === nothing && return v
         val, state = zed
-        s == size(val) || error("must all be same size!")
+        s == size(val) || throw(DimensionMismatch(
+            "slices being stacked must share a common size. Expected $s, got $(size(val))"))
 
         i += 1
         if eltype(val) <: eltype(v)
@@ -186,6 +195,8 @@ function stack_rest(v, i, n, s, itr, state)
 
     end
 end
+
+#===== offset =====#
 
 using OffsetArrays
 
