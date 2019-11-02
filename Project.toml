@@ -1,7 +1,7 @@
 name = "LazyStack"
 uuid = "1fad7336-0346-5a1a-a56f-a06ba010965b"
 authors = ["Michael Abbott"]
-version = "0.0.1"
+version = "0.0.2"
 
 [deps]
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
