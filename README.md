@@ -7,8 +7,8 @@ into one `AbstractArray`. Given several arrays with the same `eltype`,
 or an array of such arrays, it returns a lazy `Stacked{T,N}` view of these. 
 
 ```julia
-stack([zeros(2,2), ones(2,2)]) isa Stacked{Float64, 3, <:Vector{<:Matrix}}
-stack([1,2,3], 4:6) isa Stacked{Int, 2, <:Tuple{<:Vector, <:UnitRange}}
+stack([zeros(2,2), ones(2,2)])  # isa Stacked{Float64, 3, <:Vector{<:Matrix}}
+stack([1,2,3], 4:6)             # isa Stacked{Int, 2, <:Tuple{<:Vector, <:UnitRange}}
 ```
 
 Given a generator, it instead iterates through the elements and writes into a new array.
@@ -16,8 +16,8 @@ Given a generator, it instead iterates through the elements and writes into a ne
 The same method is also used for any list of arrays of heterogeneous element type.
 
 ```julia
-stack([i,2i] for i in 1:5) isa Matrix{Int}
-stack([1,2], [3.0, 4.0], [5im, 6im]) isa Matrix{Number}
+stack([i,2i] for i in 1:5)            # isa Matrix{Int}
+stack([1,2], [3.0, 4.0], [5im, 6im])  # isa Matrix{Number}
 ```
 
 The slices must all have the same `size`, but they (and the container) 
