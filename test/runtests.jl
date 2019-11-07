@@ -15,6 +15,18 @@ using OffsetArrays, NamedDims, Zygote
     @test stack(v34[i] for i in 1:4) isa Array
 
 end
+@testset "tuples" begin
+
+    vt = [(1,2), (3,4), (5,6)]
+    vnt = [(a=1,b=2), (a=3,b=4), (a=5,b=6)]
+    @test stack(vt) isa Array
+    @test stack(vt) == reshape(1:6, 2,3)
+    @test stack(vnt) isa Array
+
+    @test stack(vt...) isa Array
+    @test stack(vnt...) isa Array
+
+end
 @testset "generators" begin
 
     g234 = (ones(2) .* (10i + j) for i in 1:3, j in 1:4)
@@ -29,6 +41,9 @@ end
 
     g29 = (fill(i,2) for i=1:9)
     @test stack(Iterators.reverse(g29)) == reverse(stack(g29), dims=2)
+
+    gt = ((1,2,3) for i in 1:4)
+    @test stack(gt) isa Array
 
 end
 @testset "types" begin
