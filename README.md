@@ -16,8 +16,8 @@ Given a generator, it instead iterates through the elements and writes into a ne
 The same method is also used for any list of arrays of heterogeneous element type.
 
 ```julia
-stack([i,2i] for i in 1:5)            # isa Matrix{Int}
-stack([1,2], [3.0, 4.0], [5im, 6im])  # isa Matrix{Number}
+stack([i,2i] for i in 1:5)            # isa Matrix{Int}     # size(ans) == (2, 5)
+stack([1,2], [3.0, 4.0], [5im, 6im])  # isa Matrix{Number}  # size(ans) == (2, 3)
 ```
 
 The slices must all have the same `size`, but they (and the container) 
@@ -29,6 +29,7 @@ There are no options.
 This one plays well with [OffsetArrays.jl](https://github.com/JuliaArrays/OffsetArrays.jl),
 [NamedDims.jl](https://github.com/invenia/NamedDims.jl), and 
 [Zygote.jl](https://github.com/FluxML/Zygote.jl).
+
 Besides which, there are several other ways to achieve similar things:
 
 * For an array of arrays, you can also use [`JuliennedArrays.Align`](https://bramtayl.github.io/JuliennedArrays.jl/latest/#JuliennedArrays.Align). This requires (or enables) you to specify which dimensions of the output belong to the sub-arrays, instead of writing `PermutedDimsArray(stack(...), ...)`.
