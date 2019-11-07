@@ -253,6 +253,19 @@ maybe_add_names(A, a) = A
 maybe_add_names(A, a::NamedDimsArray{L}) where {L} =
     NamedDimsArray(A, (L..., ntuple(_ -> :_, ndims(A) - ndims(a))...))
 
+"""
+    stack(name, things...)
+
+If you give one `name::Symbol` before the pieces to be stacked,
+this will be the name of the last dimension of the resulting `NamedDimsArray`.
+(Names attached to slices, and to containers, should also be preserved.)
+"""
+function LazyStack.stack(s::Symbol, args...)
+    data = stack(args...)
+    name_last = ntuple(d -> d==ndims(data) ? s : :_, ndims(data))
+    NamedDimsArray(data, name_last)
+end
+
 #===== Zygote =====#
 
 using ZygoteRules: @adjoint
