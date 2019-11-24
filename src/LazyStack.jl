@@ -98,6 +98,13 @@ Base.collect(x::Stacked{T,2,<:AbstractArray{<:AbstractArray{T,1}}}) where {T} = 
 
 Base.view(x::Stacked{T,2,<:AbstractArray{<:AbstractArray{T,1}}}, ::Colon, i::Int) where {T} = x.slices[i]
 
+function Base.showarg(io::IO, x::Stacked, toplevel)
+    print(io, "stack(")
+    Base.showarg(io, parent(x), false)
+    print(io, ')')
+    toplevel && print(io, " with eltype ", eltype(x))
+end
+
 #===== Iteration =====#
 
 ITERS = [:Flatten, :Drop, :Filter]
