@@ -140,3 +140,10 @@ end
     @test LazyStack.vstack(g234) == reduce(vcat, collect(g234))
 
 end
+@testset "ragged" begin
+
+    @test rstack([1,2], 1:3) == [1 1; 2 2; 0 3]
+    @test rstack([[1,2], 1:3], fill=99) == [1 1; 2 2; 99 3]
+
+    # rstack(1:3, OffsetArray([3,4,5], 3:5))
+end

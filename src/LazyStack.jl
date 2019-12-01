@@ -1,6 +1,6 @@
 module LazyStack
 
-export stack
+export stack, rstack
 
 #===== Overloads =====#
 
@@ -299,5 +299,71 @@ end
 @adjoint function stack(gen::Base.Generator)
     stack(gen), Δ -> error("not yet!")
 end
+
+#===== Ragged =====#
+
+"""
+    rstack(arrays; fill=0)
+
+Ragged stack.
+"""
+rstack(x::AbstractArray, ys::AbstractArray...; kw...) = rstack((x, ys...); kw...)
+rstack(g::Base.Generator; kw...) = rstack(collect(g); kw...)
+
+function rstack(list::Union{AbstractArray{<:AbstractArray}, Tuple{Vararg{<:AbstractArray}}}; fill=zero(eltype(first(list))))
+    T = mapreduce(eltype, Base.promote_typejoin, list, init=typeof(fill))
+    # T = mapreduce(eltype, Base.promote_type, list, init=typeof(fill))
+    N = maximum(ndims, list)
+    ax = ntuple(N) do d
+        hi = maximum(x -> last(axes(x,d)), list)
+        if all(x -> axes(x,d) isa Base.OneTo, list)
+            Base.OneTo(hi)
+        else
+            lo = minimum(x -> first(axes(x,d)), list)
+            @show lo:hi
+        end
+    end
+    arr = Array{T}(undef, map(length, ax)..., size(list)...)
+    fill!(arr, fill)
+    @show arr
+    out = if ax isa Tuple{Vararg{Base.OneTo}}
+        arr
+    else
+        OffsetArray(arr, (ax..., axes(list)...))
+    end
+    for i in tupleindices(list)
+        item = list[i...]
+        view(out, axes(item)..., i...) .= item
+    end
+    out
+end
+
+tupleindices(t::Tuple) = ((i,) for i in 1:length(t))
+tupleindices(A::AbstractArray) = (Tuple(I) for I in CartesianIndices(A))
+
+#=
+
+julia> off = OffsetArray(rand(Int8,5,2), 1:5, 1:2)
+5×2 OffsetArray(::Array{Int8,2}, 1:5, 1:2) with eltype Int8 with indices 1:5×1:2:
+ -99   50
+ -49   48
+  -5  -60
+  24   53
+  69   24
+
+julia> view(off, 3:5, 2)
+3-element view(OffsetArray(::Array{Int8,2}, 1:5, 1:2), 3:5, 2) with eltype Int8:
+ -60
+  53
+  24
+
+julia> view(off, Base.IdentityUnitRange(3:5), 2)
+3-element view(OffsetArray(::Array{Int8,2}, 1:5, 1:2), :, 2) with eltype Int8 with indices 3:5:
+ 24
+  0
+ 28
+
+=#
+
 
 end # module
