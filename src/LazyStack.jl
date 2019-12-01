@@ -1,6 +1,6 @@
 module LazyStack
 
-export stack
+export stack, rstack
 
 #===== Overloads =====#
 
@@ -101,6 +101,87 @@ Base.view(x::Stacked{T,2,<:AbstractArray{<:AbstractArray{T,1}}}, ::Colon, i::Int
 function Base.showarg(io::IO, x::Stacked, toplevel)
     print(io, "stack(")
     Base.showarg(io, parent(x), false)
+    print(io, ')')
+    toplevel && print(io, " with eltype ", eltype(x))
+end
+
+#===== Ragged =====#
+
+"""
+    rstack(arrays; fill=0)
+
+Ragged stack.
+"""
+rstack(x::AbstractArray, ys::AbstractArray...; kw...) = rstack((x, ys...); kw...)
+rstack(g::Base.Generator; kw...) = rstack(collect(g); kw...)
+
+function rstack(list::Union{AbstractArray{<:AbstractArray}, Tuple{Vararg{<:AbstractArray}}}; fill=false)
+    N = maximum(ndims, list)
+    # ax = ntuple(d -> extrema(x -> axes(x,d), list)[2], N)
+    ax = ntuple(N) do d
+        hi = maximum(x -> last(axes(x,d)), list)
+        if all(x -> axes(x,d) isa Base.OneTo, list)
+            Base.OneTo(hi)
+        else
+            lo = minimum(x -> first(axes(x,d)), list)
+            lo:hi
+        end
+    end
+    # @show ax
+    padded = map(x -> PadArray(x, ax, fill), list)
+    # @show typeof(padded) # [1] padded[2]
+    stack_iter(padded)
+    # if padded isa Tuple
+    #     stack(padded...)
+    # else
+    #     stack(padded)
+    # end
+end
+
+# rstack(rand(3), rand(3), 1:3) fails?
+
+struct PadArray{T,N,DT,XT} <: AbstractArray{T,N}
+    data::DT
+    axes::XT
+    value::T
+end
+
+PadArray(A::AbstractArray, sz::Tuple{Vararg{Int}}, val=zero(eltype(A))) =
+    PadArray(A, map(Base.OneTo, sz), val)
+
+function PadArray(A::DT, ax::XT, val::TV=zero(TA)) where
+        {DT <: AbstractArray{TA,M}, XT <: NTuple{N, <:AbstractUnitRange}} where
+        {TA,M,N,TV}
+    N >= M || error("too few axes")
+    all(d -> intersect(ax[d], axes(A,d)) == axes(A,d), 1:M) || error("axes too small")
+    T = Base.promote_typejoin(TA, TV)
+    PadArray{T,N,DT,XT}(A, ax, val)
+end
+
+Base.axes(A::PadArray) = A.axes
+Base.size(A::PadArray) = map(length, A.axes)
+Base.parent(A::PadArray) = A.data
+
+@inline function Base.getindex(A::PadArray{T, N}, ind::Vararg{<:Integer, N}) where {T, N}
+    @boundscheck checkbounds(A, ind...)
+    if all(d -> ind[d] in axes(A.data, d), 1:N)
+        @inbounds convert(T, getindex(A.data, ind...))
+    else
+        convert(T, A.value)
+    end
+end
+
+function Base.showarg(io::IO, x::PadArray, toplevel)
+    print(io, "PadArray(")
+    Base.showarg(io, parent(x), false)
+    if x.axes isa NTuple{<:Any, Base.OneTo}
+        print(io, ", ", size(x))
+    else
+        print(io, ", ", axes(x))
+    end
+    if ismissing(x.value) || x.value != 0
+        print(io, ", ", x.value)
+    end
     print(io, ')')
     toplevel && print(io, " with eltype ", eltype(x))
 end
