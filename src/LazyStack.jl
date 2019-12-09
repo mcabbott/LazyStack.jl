@@ -253,14 +253,14 @@ stack(x::AT) where {AT <: AbstractArray{<:NamedDimsArray{L,T,IN},ON}} where {T,I
     NamedDimsArray(Stacked{T, IN+ON, AT}(x), getnames(x))
 
 getnames(xs::AbstractArray{<:AbstractArray}) =
-    (NamedDims.names(eltype(xs))..., NamedDims.names(xs)...)
+    (dimnames(eltype(xs))..., dimnames(xs)...)
 
 # tuple of arrays
 stack(x::AT) where {AT <: Tuple{Vararg{NamedDimsArray{L,T,IN}}}} where {T,IN,L} =
     NamedDimsArray(Stacked{T, IN+1, AT}(x), getnames(x))
 
 getnames(xs::Tuple{Vararg{<:NamedDimsArray}}) =
-    (NamedDims.names(first(xs))..., :_)
+    (dimnames(first(xs))..., :_)
 
 # generators
 function stack(xs::Base.Generator{<:NamedDimsArray{L}}) where {L}
@@ -271,7 +271,7 @@ end
 
 function stack(xs::Base.Generator{<:Iterators.ProductIterator{<:Tuple{<:NamedDimsArray}}})
     w = stack_iter(xs)
-    L = Tuple(Iterators.flatten(map(NamedDims.names, ms.iter.iterators)))
+    L = Tuple(Iterators.flatten(map(dimnames, ms.iter.iterators)))
     l = (ntuple(_ -> :_, ndims(w)-length(L))..., L...)
     NamedDimsArray(w, l)
 end
