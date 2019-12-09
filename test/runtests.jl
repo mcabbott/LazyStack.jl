@@ -72,23 +72,23 @@ end
 @testset "names" begin
 
     nin = [NamedDimsArray(ones(3), :a) for i in 1:4]
-    @test NamedDims.names(stack(nin)) == (:a, :_)
-    @test NamedDims.names(stack(:b, nin)) == (:a, :b)
+    @test dimnames(stack(nin)) == (:a, :_)
+    @test dimnames(stack(:b, nin)) == (:a, :b)
 
     nout = NamedDimsArray([ones(3) for i in 1:4], :b)
-    @test NamedDims.names(stack(nout)) == (:_, :b)
-    @test NamedDims.names(stack(:b, nout)) == (:_, :b)
+    @test dimnames(stack(nout)) == (:_, :b)
+    @test dimnames(stack(:b, nout)) == (:_, :b)
     @test_throws Exception stack(:c, nout)
 
     nboth = NamedDimsArray([NamedDimsArray(ones(3), :a) for i in 1:4], :b)
-    @test NamedDims.names(stack(nboth)) == (:a, :b)
+    @test dimnames(stack(nboth)) == (:a, :b)
 
     ngen = (NamedDimsArray(ones(3), :a) for i in 1:4)
-    @test NamedDims.names(stack(ngen)) == (:a, :_)
-    @test NamedDims.names(stack(:b, ngen)) == (:a, :b)
+    @test dimnames(stack(ngen)) == (:a, :_)
+    @test dimnames(stack(:b, ngen)) == (:a, :b)
 
     nmat = [NamedDimsArray(ones(3), :a) for i in 1:3, j in 1:4]
-    @test NamedDims.names(stack(:c, nmat)) == (:a, :_, :c)
+    @test dimnames(stack(:c, nmat)) == (:a, :_, :c)
 
 end
 @testset "offset" begin
