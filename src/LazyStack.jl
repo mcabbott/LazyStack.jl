@@ -164,6 +164,17 @@ function stack_iter(itr)
         outsize = size(itr)
     end
 
+    w, val = vstack_plus(itr)
+
+    z = reshape(w, size(val)..., outsize...)::Array
+
+    z′ = maybe_add_offsets(z, val)
+    maybe_add_names(z′, val)
+end
+
+vstack(itr) = first(vstack_plus(itr))
+
+function vstack_plus(itr)
     zed = iterate(itr)
     zed === nothing && throw(ArgumentError("stacking an empty collection is not allowed"))
     val, state = zed
@@ -172,18 +183,10 @@ function stack_iter(itr)
     n = Base.haslength(itr) ? prod(s)*length(itr) : nothing
 
     v = Vector{eltype(val)}(undef, something(n, prod(s)))
-    # @inbounds copyto!(view(v, 1:prod(s)), no_offsets(val))
-    # if is_dense(val)
-        copyto!(v, 1, no_offsets(val), 1, prod(s))
-    # else
-    #     v[1:prod(s)] .= no_offsets(val)
-    # end
+    copyto!(v, 1, no_offsets(val), 1, prod(s))
 
     w = stack_rest(v, 0, n, s, itr, state)::Vector
-    z = reshape(w, s..., outsize...)::Array
-
-    z′ = maybe_add_offsets(z, val)
-    maybe_add_names(z′, val)
+    w, val
 end
 
 function stack_rest(v, i, n, s, itr, state)
@@ -196,11 +199,8 @@ function stack_rest(v, i, n, s, itr, state)
 
         i += 1
         if eltype(val) <: eltype(v)
-            if n isa Int # && is_dense(val)
-                # @inbounds copyto!(view(v, i*prod(s)+1 : (i+1)*prod(s)), no_offsets(val))
+            if n isa Int
                 copyto!(v, i*prod(s)+1, no_offsets(val), 1, prod(s))
-            # elseif n isa Int
-            #     v[i*prod(s)+1 : (i+1)*prod(s)] .= no_offsets(val)
             else
                 append!(v, vec(no_offsets(val)))
             end
@@ -211,11 +211,8 @@ function stack_rest(v, i, n, s, itr, state)
             v′ = similar(v, T′)
             copyto!(v′, v)
 
-            if n isa Int # && is_dense(val)
-                # @inbounds copyto!(view(v′, i*prod(s)+1 : (i+1)*prod(s)), no_offsets(val))
+            if n isa Int
                 copyto!(v′, i*prod(s)+1, no_offsets(val), 1, prod(s))
-            # elseif n isa Int
-            #     v′[i*prod(s)+1 : (i+1)*prod(s)] .= no_offsets(val)
             else
                 append!(v′, vec(no_offsets(val)))
             end
@@ -226,15 +223,9 @@ function stack_rest(v, i, n, s, itr, state)
     end
 end
 
-# is_dense(x) = false
-# is_dense(x::Array) = true
-# is_dense(x::Tuple) = true
-
 #===== Offset =====#
 
 using OffsetArrays
-
-# is_dense(x::OffsetArray) = is_dense(parent(a))
 
 no_offsets(a) = a
 no_offsets(a::OffsetArray) = parent(a)

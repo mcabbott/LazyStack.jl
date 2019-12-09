@@ -131,3 +131,12 @@ end
     @test stack([1,2], [3.0, 4.0], [5im, 6im]) isa Matrix{Number}
 
 end
+@testset "vstack" begin
+
+    v34 = [rand(3) for i in 1:4]
+    @test LazyStack.vstack(v34) == reduce(vcat, v34)
+
+    g234 = (ones(2) .* (10i + j) for i in 1:3, j in 1:4)
+    @test LazyStack.vstack(g234) == reduce(vcat, collect(g234))
+
+end
