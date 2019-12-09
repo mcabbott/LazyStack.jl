@@ -39,10 +39,16 @@ t1 = Tuple(v1);
 
 @btime reduce(hcat, [rand(10^3) for i=1:10^3]); # 1.900 ms (1003 allocations: 15.39 MiB)
 @btime reduce(hcat, (rand(10^3) for i=1:10^3)); # 2.866 s (3999 allocations: 3.74 GiB)
-@btime stack(rand(10^3) for i=1:10^3);          # 1.645 ms (2004 allocations: 15.43 MiB)
+@btime stack(rand(10^3) for i=1:10^3);          # 1.631 ms (1009 allocations: 15.38 MiB)
 @btime stack([rand(10^3) for i=1:10^3]);        # 832.543 μs (1002 allocations: 7.76 MiB)
 @btime [rand(10^3) for i=1:10^3];               # 858.156 μs (1001 allocations: 7.76 MiB)
 
 @btime reduce(hcat, [i < 10 ? (i+1:i+10^2) : rand(10^2) for i=1:10^2]); # 65.562 μs (405 allocations: 170.16 KiB)
-@btime stack(i < 10 ? (i+1:i+10^2) : rand(10^2) for i=1:10^2); # 88.022 μs (9303 allocations: 383.14 KiB)
+@btime reduce(hcat, i < 10 ? (i+1:i+10^2) : rand(10^2) for i=1:10^2); # 1.492 ms (396 allocations: 3.94 MiB)
+@btime stack(i < 10 ? (i+1:i+10^2) : rand(10^2) for i=1:10^2); # 89.508 μs (9209 allocations: 378.72 KiB)
 
+@btime reduce(hcat, [ones(10^2) for i=1:10^2]); #    12.755 μs (103 allocations: 166.58 KiB)
+@btime reduce(hcat, (ones(10^2) for i=1:10^2)); # 1.419 ms (280 allocations: 3.95 MiB)
+@btime stack(ones(10^2) for i=1:10^2);          #    12.286 μs (109 allocations: 166.03 KiB)
+@btime stack([ones(10^2) for i=1:10^2]);        #     7.141 μs (102 allocations: 88.39 KiB)
+@btime collect(stack([ones(10^2) for i=1:10^2])); #  13.037 μs (104 allocations: 166.59 KiB)
