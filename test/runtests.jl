@@ -14,6 +14,11 @@ using OffsetArrays, NamedDims, Zygote
     @test stack(v34[i] for i in 1:4) == hcat(v34...)
     @test stack(v34[i] for i in 1:4) isa Array
 
+    @test stack(v34)[1] == v34[1][1] # linear indexing
+    @test stack(v34)[1,1,1] == v34[1][1] # trailing dims
+    @test stack(v34) * ones(4) ≈ hcat(v34...) * ones(4) # issue #6
+    @test stack(v34) * ones(4,2) ≈ hcat(v34...) * ones(4,2)
+
 end
 @testset "tuples" begin
 

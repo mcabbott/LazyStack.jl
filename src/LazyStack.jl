@@ -83,7 +83,7 @@ outer_ndims(x::Stacked{T,N,<:Tuple}) where {T,N} = 1
 
 inner_ndims(x::Stacked) = ndims(x) - outer_ndims(x)
 
-@inline function Base.getindex(x::Stacked{T}, inds::Integer...) where {T}
+@inline function Base.getindex(x::Stacked{T,N}, inds::Vararg{Integer,N}) where {T,N}
     @boundscheck checkbounds(x, inds...)
     IN, ON = inner_ndims(x), outer_ndims(x)
     outer = @inbounds getindex(x.slices, ntuple(d -> inds[d+IN], ON)...)
