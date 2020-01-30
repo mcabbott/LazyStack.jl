@@ -300,4 +300,8 @@ end
     stack(gen), Δ -> error("not yet!")
 end
 
+@adjoint function Base.collect(x::Stacked)
+    collect(x), tuple
+end
+
 end # module
