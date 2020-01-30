@@ -124,10 +124,14 @@ end
     @test Zygote.gradient((x,y) -> sum(stack(x,y)), ones(2), ones(2)) == ([1,1], [1,1])
     @test Zygote.gradient((x,y) -> sum(stack([x,y])), ones(2), ones(2)) == ([1,1], [1,1])
 
-    f399(x) = sum(collect(stack(x)) * sum(x))
+    f399(x) = sum(stack(x) * sum(x))
+    f399c(x) = sum(collect(stack(x)) * sum(x))
     @test Zygote.gradient(f399, [ones(2), ones(2)]) == ([[4,4], [4,4]],)
-    f489(x) = sum(collect(stack(x...)) * sum(x)) # needs https://github.com/FluxML/Zygote.jl/pull/489
-    @test_broken Zygote.gradient(f489, [ones(2), ones(2)]) == ([[4,4], [4,4]],)
+    @test Zygote.gradient(f399c, [ones(2), ones(2)]) == ([[4,4], [4,4]],)
+    ftup(x) = sum(stack(x...) * sum(x))
+    ftupc(x) = sum(collect(stack(x...)) * sum(x))
+    @test Zygote.gradient(ftup, (ones(2), ones(2))) == (([4,4], [4,4]),)
+    @test Zygote.gradient(ftupc, (ones(2), ones(2))) == (([4,4], [4,4]),)
 
 end
 @testset "readme" begin
