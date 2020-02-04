@@ -63,6 +63,7 @@ stack(xs::AbstractArray{T}...) where {T} = stack(xs)
 
 function stack_slices(xs::AT, ::Val{T}, ::Val{N}) where {T,N,AT}
     length(xs) >= 1 || throw(ArgumentError("stacking an empty collection is not allowed"))
+    storage_type(first(xs)) <: Union{Array, AbstractRange} || return stack_iter(xs)
     s = size(first(xs))
     for x in xs
         size(x) == s || throw(DimensionMismatch(
@@ -189,7 +190,6 @@ function vstack_plus(itr)
     s = size(val)
     n = Base.haslength(itr) ? prod(s)*length(itr) : nothing
 
-    # v = Vector{eltype(val)}(undef, something(n, prod(s)))
     v = similar_vector(val, something(n, prod(s)))
     copyto!(v, 1, no_offsets(val), 1, prod(s))
 
@@ -314,6 +314,14 @@ end
 
 @adjoint function Base.collect(x::Stacked)
     collect(x), tuple
+end
+
+#===== CuArrays =====#
+# Send these to stack_iter, by testing  storage_type(first(xs)) <: Array
+
+function storage_type(x::AbstractArray)
+    p = parent(x)
+    typeof(x) === typeof(p) ? typeof(x) : storage_type(p)
 end
 
 end # module
