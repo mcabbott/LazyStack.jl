@@ -2,7 +2,7 @@ module LazyStack
 
 export stack
 
-#===== Overloads =====#
+#===== Tuples =====#
 
 ndims(A) = Base.ndims(A)
 ndims(::Tuple) = 1
@@ -11,6 +11,13 @@ ndims(::NamedTuple) = 1
 size(A) = Base.size(A)
 size(t::Tuple) = tuple(length(t))
 size(t::NamedTuple) = tuple(length(t))
+
+similar_vector(x, n::Int) = similar(x, n::Int)
+similar_vector(x::Tuple, n::Int) = Vector{eltype(x)}(undef, n::Int)
+similar_vector(x::NamedTuple, n::Int) = Vector{eltype(x)}(undef, n::Int)
+
+# eltype(x::Tuple) = Base.promote_type(x...) # to match choice below
+# eltype(x::NamedTuple) = Base.promote_type(x...)
 
 #===== Slices =====#
 
@@ -182,7 +189,8 @@ function vstack_plus(itr)
     s = size(val)
     n = Base.haslength(itr) ? prod(s)*length(itr) : nothing
 
-    v = Vector{eltype(val)}(undef, something(n, prod(s)))
+    # v = Vector{eltype(val)}(undef, something(n, prod(s)))
+    v = similar_vector(val, something(n, prod(s)))
     copyto!(v, 1, no_offsets(val), 1, prod(s))
 
     w = stack_rest(v, 0, n, s, itr, state)::Vector
@@ -230,12 +238,16 @@ using OffsetArrays
 no_offsets(a) = a
 no_offsets(a::OffsetArray) = parent(a)
 
+similar_vector(a::OffsetArray, n::Int) = similar_vector(parent(a), n)
+
 maybe_add_offsets(A, a) = A
 maybe_add_offsets(A, a::OffsetArray) = OffsetArray(A, axes(a)..., axes(A, ndims(A)))
 
 #===== NamedDims =====#
 
 using NamedDims
+
+similar_vector(a::NamedDimsArray, n::Int) = similar_vector(parent(a), n)
 
 # array of arrays
 stack(xs::NamedDimsArray{<:Any,<:AbstractArray}) =
