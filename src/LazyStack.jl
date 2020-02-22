@@ -12,7 +12,7 @@ size(A) = Base.size(A)
 size(t::Tuple) = tuple(length(t))
 size(t::NamedTuple) = tuple(length(t))
 
-similar_vector(x, n::Int) = similar(x, n::Int)
+similar_vector(x::AbstractArray, n::Int) = similar(x, n::Int)
 similar_vector(x::Tuple, n::Int) = Vector{eltype(x)}(undef, n::Int)
 similar_vector(x::NamedTuple, n::Int) = Vector{eltype(x)}(undef, n::Int)
 
@@ -127,6 +127,10 @@ ITERS = [:Flatten, :Drop, :Filter]
 for iter in ITERS
     @eval ndims(::Iterators.$iter) = 1
 end
+ndims(gen::Base.Generator) = ndims(gen.iter)
+ndims(zed::Iterators.Zip) = maximum(ndims, zed.is)
+
+similar_vector(x, n::Int) = throw(ArgumentError())
 
 """
     stack(::Generator)
@@ -194,6 +198,7 @@ function vstack_plus(itr)
     zed = iterate(itr)
     zed === nothing && throw(ArgumentError("stacking an empty collection is not allowed"))
     val, state = zed
+    val isa Union{AbstractArray, Tuple, NamedTuple} || return collect(itr), val
 
     s = size(val)
     n = Base.haslength(itr) ? prod(s)*length(itr) : nothing
@@ -238,6 +243,17 @@ function stack_rest(v, i, n, s, itr, state)
 
     end
 end
+
+"""
+    stack(fun, iters...)
+    stack(eachcol(A), eachslice(B, dims=3)) do a, b
+        f(a,b)
+    end
+
+
+"""
+stack(fun::Function, iter) = stack(fun(arg) for arg in iter)
+stack(fun::Function, iters...) = stack(fun(args...) for args in zip(iters...))
 
 #===== Offset =====#
 

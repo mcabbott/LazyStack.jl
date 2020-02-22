@@ -1,5 +1,5 @@
 using Test, LazyStack
-using OffsetArrays, NamedDims, Zygote
+using OffsetArrays, NamedDims
 
 @testset "basics" begin
 
@@ -49,6 +49,20 @@ end
 
     gt = ((1,2,3) for i in 1:4)
     @test stack(gt) isa Array
+
+end
+@testset "functions" begin
+
+    m1 = rand(1:99, 3,10)
+    @test stack(sum, eachcol(m1)) == vec(mapslices(sum, m1, dims=1))
+
+    f1(x,y) = x .+ y
+    @test stack(f1, eachcol(m1), eachcol(m1)) == 2 .* m1
+    @test stack(f1, eachcol(m1), 1:12) == m1 .+ (1:10)'
+
+    @test_throws DimensionMismatch map(f1, eachcol(m1), 1:12)
+    # @test_throws DimensionMismatch stack(f1, eachcol(m1), 1:12)
+    @test_broken false # as a reminder
 
 end
 @testset "types" begin
@@ -130,6 +144,8 @@ end
     @test_throws DimensionMismatch push!(stack([rand(2)]), rand(3))
 
 end
+@info "loading Zygote"
+using Zygote
 @testset "zygote" begin
 
     @test Zygote.gradient((x,y) -> sum(stack(x,y)), ones(2), ones(2)) == ([1,1], [1,1])

@@ -1,4 +1,5 @@
-using LazyStack, BenchmarkTools, JuliennedArrays, LazyArrays
+using LazyStack, BenchmarkTools
+using JuliennedArrays, LazyArrays, SliceMap
 
 # Array of Arrays
 
@@ -52,3 +53,15 @@ t1 = Tuple(v1);
 @btime stack(ones(10^2) for i=1:10^2);          #    12.286 μs (109 allocations: 166.03 KiB)
 @btime stack([ones(10^2) for i=1:10^2]);        #     7.141 μs (102 allocations: 88.39 KiB)
 @btime collect(stack([ones(10^2) for i=1:10^2])); #  13.037 μs (104 allocations: 166.59 KiB)
+
+# Mapslices
+
+M1 = rand(10,1000);
+f1(x) = begin length(x)==10 || error(); identity.(x ./ length(x)) end
+f1(x) = sqrt.(x ./ length(x))
+
+@btime mapslices(f1, $M1; dims=1)       # 496.050 μs (7502 allocations: 399.89 KiB)
+@btime stack(f1, eachcol($M1))          #  76.542 μs (2012 allocations: 281.72 KiB)
+@btime stack(f1, eachslice($M1, dims=2))
+@btime mapcols(f1, $M1)                 #  82.132 μs (2006 allocations: 289.33 KiB)
+

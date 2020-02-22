@@ -17,6 +17,7 @@ The same method is also used for any list of arrays of heterogeneous element typ
 
 ```julia
 stack([i,2i] for i in 1:5)            # isa Matrix{Int}     # size(ans) == (2, 5)
+stack(*, eachcol(ones(2,4)), 1:4)     # == stack(map(*, eachcol(...), 1:4))
 stack([1,2], [3.0, 4.0], [5im, 6im])  # isa Matrix{Number}  # size(ans) == (2, 3)
 ```
 
