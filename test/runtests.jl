@@ -60,11 +60,16 @@ end
 
     f1(x,y) = x .+ y
     @test stack(f1, _eachcol(m1), _eachcol(m1)) == 2 .* m1
-    @test stack(f1, _eachcol(m1), 1:12) == m1 .+ (1:10)'
+    @test stack(f1, _eachcol(m1), 1:10) == m1 .+ (1:10)'
 
     @test_throws DimensionMismatch map(f1, _eachcol(m1), 1:12)
-    # @test_throws DimensionMismatch stack(f1, _eachcol(m1), 1:12)
-    @test_broken false # as a reminder
+    @test_throws DimensionMismatch stack(f1, _eachcol(m1), 1:12)
+
+    # This is where stack doesn't quite follow map's behaviour:
+    @test size(stack(map(*, [ones(2) for i=1:3, j=1:4], ones(3)))) == (2,3)
+    @test size(stack(map(*, [ones(2) for i=1:3, j=1:4], ones(5)))) == (2,5)
+    @test_throws DimensionMismatch stack(*, [ones(2) for i=1:3, j=1:4], ones(3))
+    @test_throws DimensionMismatch map(*, [ones(2) for i=1:3, j=1:4], ones(3,1))
 
 end
 @testset "types" begin
@@ -166,11 +171,13 @@ end
 @testset "readme" begin
 
     using LazyStack: Stacked
+    _eachcol(m) = (view(m, :, c) for c in axes(m,2))
 
     @test stack([zeros(2,2), ones(2,2)]) isa Stacked{Float64, 3, <:Vector{<:Matrix}}
     @test stack([1,2,3], 4:6) isa Stacked{Int, 2, <:Tuple{<:Vector, <:UnitRange}}
 
     @test stack([i,2i] for i in 1:5) isa Matrix{Int}
+    @test stack(*, _eachcol(ones(2,4)), 1:4) isa Matrix{Float64}
     @test stack([1,2], [3.0, 4.0], [5im, 6im]) isa Matrix{Number}
 
 end

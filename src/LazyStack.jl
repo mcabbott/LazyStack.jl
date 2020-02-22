@@ -256,7 +256,15 @@ The result should be `== stack(map(fun, iters...))`, but done using `stack_iter`
 to return a dense `Array` instead of a `Stacked` object.
 """
 stack(fun::Function, iter) = stack(fun(arg) for arg in iter)
-stack(fun::Function, iters...) = stack(fun(args...) for args in zip(iters...))
+function stack(fun::Function, iters...)
+    if all(Base.haslength, iters)
+        sz = size(first(iters))
+        all(a -> size(a)==sz, iters) || throw(DimensionMismatch(
+            "sizes of all argumens must match, in stack(f, A, B, C). " *
+            "This is slightly stricter than map(f, A, B, C), for now."))
+    end
+    stack(fun(args...) for args in zip(iters...))
+end
 
 #===== Offset =====#
 
