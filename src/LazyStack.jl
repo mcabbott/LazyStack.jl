@@ -129,6 +129,9 @@ for iter in ITERS
 end
 ndims(gen::Base.Generator) = ndims(gen.iter)
 ndims(zed::Iterators.Zip) = maximum(ndims, zed.is)
+if VERSION < v"1.1"
+    ndims(zed::Iterators.Zip2) = max(ndims(zed.a), ndims(zed.b))
+end
 
 similar_vector(x, n::Int) = throw(ArgumentError())
 
