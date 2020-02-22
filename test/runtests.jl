@@ -110,6 +110,15 @@ end
     @test axes(stack(ogen)) == (3:5, 1:4)
 
 end
+@testset "push!" begin
+
+    v34 = [rand(3) for i in 1:4]
+    s3 = stack(v34)
+
+    @test size(push!(s3, ones(3))) == (3,5)
+    @test s3[1,end] == 1
+
+end
 @testset "errors" begin
 
     @test_throws ArgumentError stack([])
@@ -117,6 +126,8 @@ end
 
     @test_throws DimensionMismatch stack(1:n for n in 1:3)
     @test_throws DimensionMismatch stack([1:n for n in 1:3])
+
+    @test_throws DimensionMismatch push!(stack([rand(2)]), rand(3))
 
 end
 @testset "zygote" begin
