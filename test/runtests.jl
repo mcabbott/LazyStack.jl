@@ -54,14 +54,16 @@ end
 @testset "functions" begin
 
     m1 = rand(1:99, 3,10)
-    @test stack(sum, eachcol(m1)) == vec(mapslices(sum, m1, dims=1))
+    _eachcol(m) = (view(m, :, c) for c in axes(m,2))
+
+    @test stack(sum, _eachcol(m1)) == vec(mapslices(sum, m1, dims=1))
 
     f1(x,y) = x .+ y
-    @test stack(f1, eachcol(m1), eachcol(m1)) == 2 .* m1
-    @test stack(f1, eachcol(m1), 1:12) == m1 .+ (1:10)'
+    @test stack(f1, _eachcol(m1), _eachcol(m1)) == 2 .* m1
+    @test stack(f1, _eachcol(m1), 1:12) == m1 .+ (1:10)'
 
-    @test_throws DimensionMismatch map(f1, eachcol(m1), 1:12)
-    # @test_throws DimensionMismatch stack(f1, eachcol(m1), 1:12)
+    @test_throws DimensionMismatch map(f1, _eachcol(m1), 1:12)
+    # @test_throws DimensionMismatch stack(f1, _eachcol(m1), 1:12)
     @test_broken false # as a reminder
 
 end
