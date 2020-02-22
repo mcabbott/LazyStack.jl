@@ -136,7 +136,8 @@ similar_vector(x, n::Int) = throw(ArgumentError())
     stack(::Generator)
     stack(::Array{T}, ::Array{S}, ...)
 
-This constructs a new array. Can handle inconsistent eltypes, but not inconsistent sizes.
+This constructs a new array, calling `stack_iter`.
+Can handle inconsistent eltypes, but not inconsistent sizes.
 
 ```
 julia> stack([i i; i 10i] for i in 1:2:3)
@@ -250,7 +251,9 @@ end
         f(a,b)
     end
 
-
+If the first argument is a function, then this is mapped over the other argumenst.
+The result should be `== stack(map(fun, iters...))`, but done using `stack_iter`
+to return a dense `Array` instead of a `Stacked` object.
 """
 stack(fun::Function, iter) = stack(fun(arg) for arg in iter)
 stack(fun::Function, iters...) = stack(fun(args...) for args in zip(iters...))
