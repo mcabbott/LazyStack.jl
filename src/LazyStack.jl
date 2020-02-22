@@ -273,18 +273,21 @@ using NamedDims
 
 similar_vector(a::NamedDimsArray, n::Int) = similar_vector(parent(a), n)
 
+ensure_named(a::AbstractArray, L::Tuple) = NamedDimsArray(a, L)
+ensure_named(a::NamedDimsArray, L::Tuple) = refine_names(a, L)
+
 # array of arrays
 stack(xs::NamedDimsArray{<:Any,<:AbstractArray}) =
-    NamedDimsArray(stack(parent(xs)), getnames(xs))
+    ensure_named(stack(parent(xs)), getnames(xs))
 stack(x::AT) where {AT <: AbstractArray{<:NamedDimsArray{L,T,IN},ON}} where {T,IN,ON,L} =
-    NamedDimsArray(Stacked{T, IN+ON, AT}(x), getnames(x))
+    ensure_named(Stacked{T, IN+ON, AT}(x), getnames(x))
 
 getnames(xs::AbstractArray{<:AbstractArray}) =
     (dimnames(eltype(xs))..., dimnames(xs)...)
 
 # tuple of arrays
 stack(x::AT) where {AT <: Tuple{Vararg{NamedDimsArray{L,T,IN}}}} where {T,IN,L} =
-    NamedDimsArray(Stacked{T, IN+1, AT}(x), getnames(x))
+    ensure_named(Stacked{T, IN+1, AT}(x), getnames(x))
 
 getnames(xs::Tuple{Vararg{<:NamedDimsArray}}) =
     (dimnames(first(xs))..., :_)
@@ -293,19 +296,19 @@ getnames(xs::Tuple{Vararg{<:NamedDimsArray}}) =
 function stack(xs::Base.Generator{<:NamedDimsArray{L}}) where {L}
     w = stack_iter(xs)
     l = (ntuple(_ -> :_, ndims(w)-length(L))..., L...)
-    NamedDimsArray(w, l)
+    ensure_named(w, l)
 end
 
 function stack(xs::Base.Generator{<:Iterators.ProductIterator{<:Tuple{<:NamedDimsArray}}})
     w = stack_iter(xs)
     L = Tuple(Iterators.flatten(map(dimnames, ms.iter.iterators)))
     l = (ntuple(_ -> :_, ndims(w)-length(L))..., L...)
-    NamedDimsArray(w, l)
+    ensure_named(w, l)
 end
 
 maybe_add_names(A, a) = A
 maybe_add_names(A, a::NamedDimsArray{L}) where {L} =
-    NamedDimsArray(A, (L..., ntuple(_ -> :_, ndims(A) - ndims(a))...))
+    ensure_named(A, (L..., ntuple(_ -> :_, ndims(A) - ndims(a))...))
 
 """
     stack(name, things...)
@@ -317,7 +320,7 @@ this will be the name of the last dimension of the resulting `NamedDimsArray`.
 function LazyStack.stack(s::Symbol, args...)
     data = stack(args...)
     name_last = ntuple(d -> d==ndims(data) ? s : :_, ndims(data))
-    NamedDimsArray(data, name_last)
+    ensure_named(data, name_last)
 end
 
 #===== Zygote =====#
