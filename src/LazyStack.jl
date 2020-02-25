@@ -207,7 +207,7 @@ function vstack_plus(itr)
     n = Base.haslength(itr) ? prod(s)*length(itr) : nothing
 
     v = similar_vector(val, something(n, prod(s)))
-    copyto!(v, 1, no_offsets(val), 1, prod(s))
+    copyto!(v, 1, no_wraps(val), 1, prod(s))
 
     w = stack_rest(v, 0, n, s, itr, state)::Vector
     w, val
@@ -224,9 +224,9 @@ function stack_rest(v, i, n, s, itr, state)
         i += 1
         if eltype(val) <: eltype(v)
             if n isa Int
-                copyto!(v, i*prod(s)+1, no_offsets(val), 1, prod(s))
+                copyto!(v, i*prod(s)+1, no_wraps(val), 1, prod(s))
             else
-                append!(v, vec(no_offsets(val)))
+                append!(v, vec(no_wraps(val)))
             end
         else
 
@@ -236,9 +236,9 @@ function stack_rest(v, i, n, s, itr, state)
             copyto!(v′, v)
 
             if n isa Int
-                copyto!(v′, i*prod(s)+1, no_offsets(val), 1, prod(s))
+                copyto!(v′, i*prod(s)+1, no_wraps(val), 1, prod(s))
             else
-                append!(v′, vec(no_offsets(val)))
+                append!(v′, vec(no_wraps(val)))
             end
 
             return stack_rest(v′, i, n, s, itr, state)
@@ -272,8 +272,8 @@ end
 
 using OffsetArrays
 
-no_offsets(a) = a
-no_offsets(a::OffsetArray) = parent(a)
+no_wraps(a) = a
+no_wraps(a::OffsetArray) = parent(a)
 
 similar_vector(a::OffsetArray, n::Int) = similar_vector(parent(a), n)
 
@@ -327,7 +327,7 @@ function rewrap_like(A, a::NamedDimsArray{L}) where {L}
     ensure_named(B, (L..., ntuple(_ -> :_, ndims(A) - ndims(a))...))
 end
 
-no_offsets(a::NamedDimsArray) = no_offsets(parent(a)) # perhaps rename to no_wrap?
+no_wraps(a::NamedDimsArray) = no_wraps(parent(a))
 
 """
     stack(name, things...)
