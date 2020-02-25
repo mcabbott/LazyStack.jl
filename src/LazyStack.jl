@@ -206,7 +206,7 @@ function vstack_plus(itr)
     s = size(val)
     n = Base.haslength(itr) ? prod(s)*length(itr) : nothing
 
-    v = similar_vector(val, something(n, prod(s)))
+    v = similar_vector(no_wraps(val), something(n, prod(s)))
     copyto!(v, 1, no_wraps(val), 1, prod(s))
 
     w = stack_rest(v, 0, n, s, itr, state)::Vector
@@ -275,8 +275,6 @@ using OffsetArrays
 no_wraps(a) = a
 no_wraps(a::OffsetArray) = parent(a)
 
-similar_vector(a::OffsetArray, n::Int) = similar_vector(parent(a), n)
-
 rewrap_like(A, a) = A
 function rewrap_like(A, a::OffsetArray)
     B = rewrap_like(A, parent(a))
@@ -286,8 +284,6 @@ end
 #===== NamedDims =====#
 
 using NamedDims
-
-similar_vector(a::NamedDimsArray, n::Int) = similar_vector(parent(a), n)
 
 ensure_named(a::AbstractArray, L::Tuple) = NamedDimsArray(a, L)
 ensure_named(a::NamedDimsArray, L::Tuple) = refine_names(a, L)
@@ -303,12 +299,13 @@ getnames(xs::AbstractArray{<:AbstractArray}) =
 
 # tuple of arrays
 stack(x::AT) where {AT <: Tuple{Vararg{NamedDimsArray{L,T,IN}}}} where {T,IN,L} =
-    ensure_named(stack(map(parent,x)), getnames(x))
+    ensure_named(stack(map(parent, x)), getnames(x))
 
 getnames(xs::Tuple{Vararg{<:NamedDimsArray}}) =
     (dimnames(first(xs))..., :_)
 
 # generators
+#=
 function stack(xs::Base.Generator{<:NamedDimsArray{L}}) where {L}
     w = stack_iter(xs)
     l = (ntuple(_ -> :_, ndims(w)-length(L))..., L...)
@@ -321,6 +318,7 @@ function stack(xs::Base.Generator{<:Iterators.ProductIterator{<:Tuple{<:NamedDim
     l = (ntuple(_ -> :_, ndims(w)-length(L))..., L...)
     ensure_named(w, l)
 end
+=#
 
 function rewrap_like(A, a::NamedDimsArray{L}) where {L}
     B = rewrap_like(A, parent(a))
