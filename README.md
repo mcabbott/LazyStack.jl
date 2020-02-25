@@ -4,7 +4,7 @@
 
 This package exports one function, `stack`, for turning a list of arrays 
 into one `AbstractArray`. Given several arrays with the same `eltype`, 
-or an array of such arrays, it returns a lazy `Stacked{T,N}` view of these. 
+or an array of such arrays, it returns a lazy `Stacked{T,N}` view of these:
 
 ```julia
 stack([zeros(2,2), ones(2,2)])  # isa Stacked{Float64, 3, <:Vector{<:Matrix}}
@@ -13,17 +13,21 @@ stack([1,2,3], 4:6)             # isa Stacked{Int, 2, <:Tuple{<:Vector, <:UnitRa
 
 Given a generator, it instead iterates through the elements and writes into a new array.
 Given a function and then some arrays, it behaves like `map(f, A, B)` but immediately writes
-the into a new array.
-The same `stack_iter` method is also used for any list of arrays of heterogeneous element type.
+into a new array:
 
 ```julia
 stack([i,2i] for i in 1:5)            # isa Matrix{Int}     # size(ans) == (2, 5)
 stack(*, eachcol(ones(2,4)), 1:4)     # == Matrix(stack(map(*, eachcol(...), 1:4)))
-stack([1,2], [3.0, 4.0], [5im, 6im])  # isa Matrix{Number}  # size(ans) == (2, 3)
 ```
 
-Notice that like `map(identity, Any[1, 1.0, 5im])`, this promotes using 
+The same `stack_iter` method is also used for any list of arrays of heterogeneous element type,
+and for arrays of tuples. Notice that like `map(identity, Any[1, 1.0, 5im])`, this promotes using 
 `promote_typejoin`, to `Number` here, rather than to `Complex{Float64}`.
+
+```julia
+stack([1,2], [3.0, 4.0], [5im, 6im])  # isa Matrix{Number}  # size(ans) == (2, 3)
+stack([(1,2.0,3//1) for i=1:4, j=1:5])# isa Array{Real, 3}  # size(ans) == (3, 4, 5)
+```
 
 The slices must all have the same `size`, but they (and the container) 
 can have any number of dimensions. `stack` always places the slice dimensions first.
