@@ -12,14 +12,18 @@ stack([1,2,3], 4:6)             # isa Stacked{Int, 2, <:Tuple{<:Vector, <:UnitRa
 ```
 
 Given a generator, it instead iterates through the elements and writes into a new array.
-(This is lazy only in that it need not `collect` the generator first.)
-The same method is also used for any list of arrays of heterogeneous element type.
+Given a function and then some arrays, it behaves like `map(f, A, B)` but immediately writes
+the into a new array.
+The same `stack_iter` method is also used for any list of arrays of heterogeneous element type.
 
 ```julia
 stack([i,2i] for i in 1:5)            # isa Matrix{Int}     # size(ans) == (2, 5)
-stack(*, eachcol(ones(2,4)), 1:4)     # == stack(map(*, eachcol(...), 1:4))
+stack(*, eachcol(ones(2,4)), 1:4)     # == Matrix(stack(map(*, eachcol(...), 1:4)))
 stack([1,2], [3.0, 4.0], [5im, 6im])  # isa Matrix{Number}  # size(ans) == (2, 3)
 ```
+
+Notice that like `map(identity, Any[1, 1.0, 5im])`, this promotes using 
+`promote_typejoin`, to `Number` here, rather than to `Complex{Float64}`.
 
 The slices must all have the same `size`, but they (and the container) 
 can have any number of dimensions. `stack` always places the slice dimensions first.
@@ -37,3 +41,5 @@ Besides which, there are several other ways to achieve similar things:
 * There is also [`RecursiveArrayTools.VectorOfArray`](https://github.com/JuliaDiffEq/RecursiveArrayTools.jl#vectorofarray) which as its name hints only allows a one-dimensional container.
 * For a tuple of arrays, [`LazyArrays.Hcat`](https://github.com/JuliaArrays/LazyArrays.jl#concatenation) is at present faster to index than `stack`, but doesn't allow arbitrary dimensions.
 * For a generator of arrays, the built-in `reduce(hcat,...)` may work, but it slow compared to `stack`: see [test/speed.jl](test/speed.jl) for some examples.
+
+The package [ArraysOfArrays.jl](https://oschulz.github.io/ArraysOfArrays.jl/stable/#section_ArrayOfSimilarArrays-1) solves the opposite problem, of accessing one large array as if it were many slices. As does [`JuliennedArrays.Slices`](https://bramtayl.github.io/JuliennedArrays.jl/latest/#JuliennedArrays.Slices-Union{Tuple{NumberOfDimensions},%20Tuple{Item},%20Tuple{AbstractArray{Item,NumberOfDimensions},Vararg{Int64,N}%20where%20N}}%20where%20NumberOfDimensions%20where%20Item), and of course [`Base.eachslice`](https://docs.julialang.org/en/v1/base/arrays/#Base.eachslice).
