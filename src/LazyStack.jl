@@ -301,7 +301,7 @@ getnames(xs::AbstractArray{<:AbstractArray}) =
 
 # tuple of arrays
 stack(x::AT) where {AT <: Tuple{Vararg{NamedDimsArray{L,T,IN}}}} where {T,IN,L} =
-    ensure_named(Stacked{T, IN+1, AT}(x), getnames(x))
+    ensure_named(stack(map(parent,x)), getnames(x))
 
 getnames(xs::Tuple{Vararg{<:NamedDimsArray}}) =
     (dimnames(first(xs))..., :_)

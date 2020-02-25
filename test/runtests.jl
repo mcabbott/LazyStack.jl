@@ -99,7 +99,11 @@ end
 
     nin = [NamedDimsArray(ones(3), :a) for i in 1:4]
     @test dimnames(stack(nin)) == (:a, :_)
+    @test dimnames(stack(nin...)) == (:a, :_)
     @test dimnames(stack(:b, nin)) == (:a, :b)
+    @test dimnames(stack(:b, nin...)) == (:a, :b)
+    @test stack(nin).data.slices[1] isa NamedDimsArray # vector container untouched,
+    @test stack(nin...).data.slices[1] isa Array # but tuple container cleaned up.
 
     nout = NamedDimsArray([ones(3) for i in 1:4], :b)
     @test dimnames(stack(nout)) == (:_, :b)
