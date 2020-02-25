@@ -190,10 +190,9 @@ function stack_iter(itr)
 
     w, val = vstack_plus(itr)
 
-    z = reshape(w, size(val)..., outsize...)::Array
+    z = reshape(w, size(val)..., outsize...)
 
-    z′ = maybe_add_offsets(z, val)
-    maybe_add_names(z′, val)
+    rewrap_like(z, val)
 end
 
 vstack(itr) = first(vstack_plus(itr))
@@ -278,8 +277,11 @@ no_offsets(a::OffsetArray) = parent(a)
 
 similar_vector(a::OffsetArray, n::Int) = similar_vector(parent(a), n)
 
-maybe_add_offsets(A, a) = A
-maybe_add_offsets(A, a::OffsetArray) = OffsetArray(A, axes(a)..., axes(A, ndims(A)))
+rewrap_like(A, a) = A
+function rewrap_like(A, a::OffsetArray)
+    B = rewrap_like(A, parent(a))
+    OffsetArray(B, axes(a)..., axes(A, ndims(A)))
+end
 
 #===== NamedDims =====#
 
@@ -320,9 +322,12 @@ function stack(xs::Base.Generator{<:Iterators.ProductIterator{<:Tuple{<:NamedDim
     ensure_named(w, l)
 end
 
-maybe_add_names(A, a) = A
-maybe_add_names(A, a::NamedDimsArray{L}) where {L} =
-    ensure_named(A, (L..., ntuple(_ -> :_, ndims(A) - ndims(a))...))
+function rewrap_like(A, a::NamedDimsArray{L}) where {L}
+    B = rewrap_like(A, parent(a))
+    ensure_named(B, (L..., ntuple(_ -> :_, ndims(A) - ndims(a))...))
+end
+
+no_offsets(a::NamedDimsArray) = no_offsets(parent(a)) # perhaps rename to no_wrap?
 
 """
     stack(name, things...)

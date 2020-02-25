@@ -125,6 +125,7 @@ end
 
     oin = [OffsetArray(ones(3), 3:5) for i in 1:4]
     @test axes(stack(oin)) == (3:5, 1:4)
+    @test axes(stack(oin...)) == (3:5, 1:4)
     @test axes(copy(stack(oin))) == (3:5, 1:4)
 
     oout = OffsetArray([ones(3) for i in 1:4], 11:14)
@@ -133,6 +134,29 @@ end
 
     ogen = (OffsetArray([3,4,5], 3:5) for i in 1:4)
     @test axes(stack(ogen)) == (3:5, 1:4)
+
+end
+@testset "named offset" begin
+
+    noin = [NamedDimsArray(OffsetArray(ones(3), 3:5), :a) for i in 1:4]
+    @test dimnames(stack(noin)) == (:a, :_)
+    @test dimnames(stack(noin...)) == (:a, :_)
+    @test dimnames(stack(:b, noin)) == (:a, :b)
+    @test dimnames(stack(:b, noin...)) == (:a, :b)
+    @test axes(stack(noin)) == (3:5, 1:4)
+    @test axes(stack(noin...)) == (3:5, 1:4)
+
+    noout = NamedDimsArray(OffsetArray([ones(3) for i in 1:4], 11:14), :b)
+    @test dimnames(stack(noout)) == (:_, :b)
+    @test dimnames(stack(:b, noout)) == (:_, :b)
+    @test_throws Exception stack(:c, noout)
+    @test axes(stack(noout)) == (1:3, 11:14)
+    @test axes(copy(stack(noout))) ==  (1:3, 11:14)
+
+    nogen = (NamedDimsArray(OffsetArray([3,4,5], 3:5), :a) for i in 1:4)
+    @test dimnames(stack(nogen)) == (:a, :_)
+    @test dimnames(stack(:b, nogen)) == (:a, :b)
+    @test axes(stack(nogen)) == (3:5, 1:4)
 
 end
 @testset "push!" begin
