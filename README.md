@@ -26,7 +26,7 @@ and for arrays of tuples. Notice that like `map(identity, Any[1, 1.0, 5im])`, th
 
 ```julia
 stack([1,2], [3.0, 4.0], [5im, 6im])  # isa Matrix{Number}  # size(ans) == (2, 3)
-stack([(1,2.0,3//1) for i=1:4, j=1:5])# isa Array{Real, 3}  # size(ans) == (3, 4, 5)
+stack([(i,2.0,3//j) for i=1:4, j=1:5])# isa Array{Real, 3}  # size(ans) == (3, 4, 5)
 ```
 
 The slices must all have the same `size`, but they (and the container) 
@@ -42,7 +42,7 @@ This one plays well with [OffsetArrays.jl](https://github.com/JuliaArrays/Offset
 Besides which, there are several other ways to achieve similar things:
 
 * For an array of arrays, you can also use [`JuliennedArrays.Align`](https://bramtayl.github.io/JuliennedArrays.jl/latest/#JuliennedArrays.Align). This requires (or enables) you to specify which dimensions of the output belong to the sub-arrays, instead of writing `PermutedDimsArray(stack(...), ...)`.
-* There is also [`RecursiveArrayTools.VectorOfArray`](https://github.com/JuliaDiffEq/RecursiveArrayTools.jl#vectorofarray) which as its name hints only allows a one-dimensional container.
+* There is also [`RecursiveArrayTools.VectorOfArray`](https://github.com/JuliaDiffEq/RecursiveArrayTools.jl#vectorofarray) which as its name hints only allows a one-dimensional container. Linear indexing retreives a slice, not an element, which is sometimes surprising.
 * For a tuple of arrays, [`LazyArrays.Hcat`](https://github.com/JuliaArrays/LazyArrays.jl#concatenation) is at present faster to index than `stack`, but doesn't allow arbitrary dimensions.
 * For a generator of arrays, the built-in `reduce(hcat,...)` may work, but it slow compared to `stack`: see [test/speed.jl](test/speed.jl) for some examples.
 
