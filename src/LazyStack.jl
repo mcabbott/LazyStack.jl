@@ -1,12 +1,19 @@
 module LazyStack
 
-export stack
+export stack, rstack
 
 #===== Tuples =====#
 
 ndims(A) = Base.ndims(A)
 ndims(::Tuple) = 1
 ndims(::NamedTuple) = 1
+
+axes(A) = Base.axes(A)
+axes(A, d) = Base.axes(A, d)
+if VERSION < v"1.1" # because, on Julia 1.0, axes((1,2)) === Base.OneTo(2)
+    axes(t::Tuple) = tuple(Base.axes(t))
+end
+axes(nt::NamedTuple) = tuple(Base.OneTo(length(nt)))
 
 size(A) = Base.size(A)
 size(t::Tuple) = tuple(length(t))
@@ -80,9 +87,6 @@ Base.size(x::Stacked) = (size(first(x.slices))..., size(x.slices)...)
 Base.size(x::Stacked{T,N,<:Tuple}) where {T,N} = (size(first(x.slices))..., length(x.slices))
 
 Base.axes(x::Stacked) = (axes(first(x.slices))..., axes(x.slices)...)
-if VERSION < v"1.1" # axes((1:9, 1:9)) == Base.OneTo(2) # on Julia 1.0
-    Base.axes(x::Stacked{T,N,<:Tuple}) where {T,N} = (axes(first(x.slices))..., axes(x.slices))
-end
 
 Base.parent(x::Stacked) = x.slices
 
@@ -366,6 +370,102 @@ end
 function storage_type(x::AbstractArray)
     p = parent(x)
     typeof(x) === typeof(p) ? typeof(x) : storage_type(p)
+end
+
+#===== Ragged =====#
+
+"""
+    rstack(arrays; fill=0)
+
+Ragged `stack`, which allows slices of varying size, and fills the gaps with zero
+or the given `fill`. Always returns an `Array`.
+
+```
+julia> rstack(1:n for n in 1:5)
+5×5 Array{Int64,2}:
+ 1  1  1  1  1
+ 0  2  2  2  2
+ 0  0  3  3  3
+ 0  0  0  4  4
+ 0  0  0  0  5
+
+julia> rstack([[1,2,3], [10,20.0]], fill=missing)
+3×2 Array{Union{Missing, Float64},2}:
+ 1.0  10.0
+ 2.0  20.0
+ 3.0    missing
+
+julia> using OffsetArrays
+
+julia> rstack(1:3, OffsetArray([2.0,2.1,2.2], -1), OffsetArray([3.2,3.3,3.4], +1))
+5×3 OffsetArray(::Array{Real,2}, 0:4, 1:3) with eltype Real with indices 0:4×1:3:
+ 0  2.0  0
+ 1  2.1  0
+ 2  2.2  3.2
+ 3  0    3.3
+ 0  0    3.4
+```
+
+"""
+rstack(x::AbstractArray, ys::AbstractArray...; kw...) = rstack((x, ys...); kw...)
+rstack(g::Base.Generator; kw...) = rstack(collect(g); kw...)
+rstack(f::Function, ABC...; kw...) = rstack(map(f, ABC...); kw...)
+rstack(list::AbstractArray{<:AbstractArray}; fill=zero(eltype(first(list)))) = rstack_iter(list; fill=fill)
+rstack(list::Tuple{Vararg{<:AbstractArray}}; fill=zero(eltype(first(list)))) = rstack_iter(list; fill=fill)
+
+function rstack_iter(list; fill)
+    T = mapreduce(eltype, Base.promote_typejoin, list, init=typeof(fill))
+    # T = mapreduce(eltype, Base.promote_type, list, init=typeof(fill))
+    N = maximum(ndims, list)
+    ax = ntuple(N) do d
+        hi = maximum(x -> last(axes(x,d)), list)
+        if all(x -> axes(x,d) isa Base.OneTo, list)
+            Base.OneTo(hi)
+        else
+            lo = minimum(x -> first(axes(x,d)), list)
+            lo:hi
+        end
+    end
+    arr = Array{T}(undef, map(length, ax)..., size(list)...)
+    fill!(arr, fill)
+    out = if ax isa Tuple{Vararg{Base.OneTo}}
+        arr
+    else
+        OffsetArray(arr, (ax..., axes(list)...))
+    end
+    z = rstack_copyto!(out, list, Val(N))
+
+    rewrap_names(z, first(list)) # now I want to separate names & offsets again!
+end
+
+function rstack_copyto!(out, list, ::Val{N}) where {N}
+    for i in tupleindices(list)
+        item = list[i...]
+        o = ntuple(_->1, N - ndims(item))
+        out[CartesianIndices(axes(item)), o..., i...] .= item
+
+        # https://github.com/JuliaArrays/OffsetArrays.jl/issues/100
+        # view(out, axes(item)..., o..., i...) .= item
+
+        # for I in CartesianIndices(item)
+        #     out[Tuple(I)..., o..., i...] = item[I]
+        # end
+    end
+    out
+end
+
+tupleindices(t::Tuple) = ((i,) for i in 1:length(t))
+tupleindices(A::AbstractArray) = (Tuple(I) for I in CartesianIndices(A))
+
+rewrap_names(A, a) = A
+function rewrap_names(A, a::NamedDimsArray{L}) where {L}
+    B = rewrap_names(A, parent(a))
+    ensure_named(B, (L..., ntuple(_ -> :_, ndims(A) - ndims(a))...))
+end
+function rstack(s::Symbol, args...)
+    data = rstack(args...)
+    name_last = ntuple(d -> d==ndims(data) ? s : :_, ndims(data))
+    ensure_named(data, name_last)
 end
 
 end # module
