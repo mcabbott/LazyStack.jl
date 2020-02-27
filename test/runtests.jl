@@ -18,6 +18,7 @@ using OffsetArrays, NamedDims
     @test stack(v34)[1,1,1] == v34[1][1] # trailing dims
     @test stack(v34) * ones(4) ≈ hcat(v34...) * ones(4) # issue #6
     @test stack(v34) * ones(4,2) ≈ hcat(v34...) * ones(4,2)
+    @test axes(stack(v34)) === axes(stack(v34...)) === axes(stack(v34[i] for i in 1:4))
 
 end
 @testset "tuples" begin
@@ -210,6 +211,21 @@ end
     @test rstack(1:2, OffsetArray([0.1,1], -1)) == OffsetArray([0 0.1; 1 1.0; 2 0],-1,0)
 
     @test dimnames(rstack(:b, NamedDimsArray(1:2, :a), OffsetArray([2,3], +1))) == (:a, :b)
+
+end
+@testset "tuple functions" begin
+
+    @test LazyStack.ndims([1,2]) == 1
+    @test LazyStack.ndims((1,2)) == 1
+    @test LazyStack.ndims((a=1,b=2)) == 1
+
+    @test LazyStack.size([1,2]) == (2,)
+    @test LazyStack.size((1,2)) == (2,)
+    @test LazyStack.size((a=1,b=2)) == (2,)
+
+    @test LazyStack.axes([1,2]) == (1:2,)
+    @test LazyStack.axes((1,2)) == (1:2,)
+    @test LazyStack.axes((a=1,b=2)) == (1:2,)
 
 end
 @info "loading Zygote"

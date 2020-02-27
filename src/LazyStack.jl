@@ -8,6 +8,13 @@ ndims(A) = Base.ndims(A)
 ndims(::Tuple) = 1
 ndims(::NamedTuple) = 1
 
+axes(A) = Base.axes(A)
+axes(A, d) = Base.axes(A, d)
+if VERSION < v"1.1" # because, on Julia 1.0, axes((1,2)) === Base.OneTo(2)
+    axes(t::Tuple) = tuple(Base.axes(t))
+end
+axes(nt::NamedTuple) = tuple(Base.OneTo(length(nt)))
+
 size(A) = Base.size(A)
 size(t::Tuple) = tuple(length(t))
 size(t::NamedTuple) = tuple(length(t))
@@ -80,9 +87,6 @@ Base.size(x::Stacked) = (size(first(x.slices))..., size(x.slices)...)
 Base.size(x::Stacked{T,N,<:Tuple}) where {T,N} = (size(first(x.slices))..., length(x.slices))
 
 Base.axes(x::Stacked) = (axes(first(x.slices))..., axes(x.slices)...)
-if VERSION < v"1.1" # axes((1:9, 1:9)) == Base.OneTo(2) # on Julia 1.0
-    Base.axes(x::Stacked{T,N,<:Tuple}) where {T,N} = (axes(first(x.slices))..., axes(x.slices))
-end
 
 Base.parent(x::Stacked) = x.slices
 
