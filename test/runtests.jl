@@ -133,6 +133,9 @@ end
     @test axes(stack(oout)) == (1:3, 11:14)
     @test axes(copy(stack(oout))) ==  (1:3, 11:14)
 
+    oboth = OffsetArray(oin, 11:14)
+    @test axes(stack(oboth)) == (3:5, 11:14)
+
     ogen = (OffsetArray([3,4,5], 3:5) for i in 1:4)
     @test axes(stack(ogen)) == (3:5, 1:4)
 
