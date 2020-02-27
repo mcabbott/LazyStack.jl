@@ -1,5 +1,5 @@
 using Test, LazyStack
-using OffsetArrays, NamedDims, Zygote
+using OffsetArrays, NamedDims
 
 @testset "basics" begin
 
@@ -13,6 +13,11 @@ using OffsetArrays, NamedDims, Zygote
 
     @test stack(v34[i] for i in 1:4) == hcat(v34...)
     @test stack(v34[i] for i in 1:4) isa Array
+
+    @test stack(v34)[1] == v34[1][1] # linear indexing
+    @test stack(v34)[1,1,1] == v34[1][1] # trailing dims
+    @test stack(v34) * ones(4) ≈ hcat(v34...) * ones(4) # issue #6
+    @test stack(v34) * ones(4,2) ≈ hcat(v34...) * ones(4,2)
 
 end
 @testset "tuples" begin
@@ -46,6 +51,27 @@ end
     @test stack(gt) isa Array
 
 end
+@testset "functions" begin
+
+    m1 = rand(1:99, 3,10)
+    _eachcol(m) = (view(m, :, c) for c in axes(m,2))
+
+    @test stack(sum, _eachcol(m1)) == vec(mapslices(sum, m1, dims=1))
+
+    f1(x,y) = x .+ y
+    @test stack(f1, _eachcol(m1), _eachcol(m1)) == 2 .* m1
+    @test stack(f1, _eachcol(m1), 1:10) == m1 .+ (1:10)'
+
+    @test_throws DimensionMismatch map(f1, _eachcol(m1), 1:12)
+    @test_throws DimensionMismatch stack(f1, _eachcol(m1), 1:12)
+
+    # This is where stack doesn't quite follow map's behaviour:
+    @test size(stack(map(*, [ones(2) for i=1:3, j=1:4], ones(3)))) == (2,3)
+    @test size(stack(map(*, [ones(2) for i=1:3, j=1:4], ones(5)))) == (2,5)
+    @test_throws DimensionMismatch stack(*, [ones(2) for i=1:3, j=1:4], ones(3))
+    @test_throws DimensionMismatch map(*, [ones(2) for i=1:3, j=1:4], ones(3,1))
+
+end
 @testset "types" begin
 
     @test stack([1:3 for _=1:2]...) isa LazyStack.Stacked{Int,2,<:Tuple{UnitRange,UnitRange}}
@@ -73,7 +99,11 @@ end
 
     nin = [NamedDimsArray(ones(3), :a) for i in 1:4]
     @test dimnames(stack(nin)) == (:a, :_)
+    @test dimnames(stack(nin...)) == (:a, :_)
     @test dimnames(stack(:b, nin)) == (:a, :b)
+    @test dimnames(stack(:b, nin...)) == (:a, :b)
+    @test stack(nin).data.slices[1] isa NamedDimsArray # vector container untouched,
+    @test stack(nin...).data.slices[1] isa Array # but tuple container cleaned up.
 
     nout = NamedDimsArray([ones(3) for i in 1:4], :b)
     @test dimnames(stack(nout)) == (:_, :b)
@@ -95,6 +125,7 @@ end
 
     oin = [OffsetArray(ones(3), 3:5) for i in 1:4]
     @test axes(stack(oin)) == (3:5, 1:4)
+    @test axes(stack(oin...)) == (3:5, 1:4)
     @test axes(copy(stack(oin))) == (3:5, 1:4)
 
     oout = OffsetArray([ones(3) for i in 1:4], 11:14)
@@ -105,6 +136,38 @@ end
     @test axes(stack(ogen)) == (3:5, 1:4)
 
 end
+@testset "named offset" begin
+
+    noin = [NamedDimsArray(OffsetArray(ones(3), 3:5), :a) for i in 1:4]
+    @test dimnames(stack(noin)) == (:a, :_)
+    @test dimnames(stack(noin...)) == (:a, :_)
+    @test dimnames(stack(:b, noin)) == (:a, :b)
+    @test dimnames(stack(:b, noin...)) == (:a, :b)
+    @test axes(stack(noin)) == (3:5, 1:4)
+    @test axes(stack(noin...)) == (3:5, 1:4)
+
+    noout = NamedDimsArray(OffsetArray([ones(3) for i in 1:4], 11:14), :b)
+    @test dimnames(stack(noout)) == (:_, :b)
+    @test dimnames(stack(:b, noout)) == (:_, :b)
+    @test_throws Exception stack(:c, noout)
+    @test axes(stack(noout)) == (1:3, 11:14)
+    @test axes(copy(stack(noout))) ==  (1:3, 11:14)
+
+    nogen = (NamedDimsArray(OffsetArray([3,4,5], 3:5), :a) for i in 1:4)
+    @test dimnames(stack(nogen)) == (:a, :_)
+    @test dimnames(stack(:b, nogen)) == (:a, :b)
+    @test axes(stack(nogen)) == (3:5, 1:4)
+
+end
+@testset "push!" begin
+
+    v34 = [rand(3) for i in 1:4]
+    s3 = stack(v34)
+
+    @test size(push!(s3, ones(3))) == (3,5)
+    @test s3[1,end] == 1
+
+end
 @testset "errors" begin
 
     @test_throws ArgumentError stack([])
@@ -113,21 +176,36 @@ end
     @test_throws DimensionMismatch stack(1:n for n in 1:3)
     @test_throws DimensionMismatch stack([1:n for n in 1:3])
 
+    @test_throws DimensionMismatch push!(stack([rand(2)]), rand(3))
+
 end
+@info "loading Zygote"
+using Zygote
 @testset "zygote" begin
 
     @test Zygote.gradient((x,y) -> sum(stack(x,y)), ones(2), ones(2)) == ([1,1], [1,1])
     @test Zygote.gradient((x,y) -> sum(stack([x,y])), ones(2), ones(2)) == ([1,1], [1,1])
 
+    f399(x) = sum(stack(x) * sum(x))
+    f399c(x) = sum(collect(stack(x)) * sum(x))
+    @test Zygote.gradient(f399, [ones(2), ones(2)]) == ([[4,4], [4,4]],)
+    @test Zygote.gradient(f399c, [ones(2), ones(2)]) == ([[4,4], [4,4]],)
+    ftup(x) = sum(stack(x...) * sum(x))
+    ftupc(x) = sum(collect(stack(x...)) * sum(x))
+    @test Zygote.gradient(ftup, (ones(2), ones(2))) == (([4,4], [4,4]),)
+    @test Zygote.gradient(ftupc, (ones(2), ones(2))) == (([4,4], [4,4]),)
+
 end
 @testset "readme" begin
 
     using LazyStack: Stacked
+    _eachcol(m) = (view(m, :, c) for c in axes(m,2))
 
     @test stack([zeros(2,2), ones(2,2)]) isa Stacked{Float64, 3, <:Vector{<:Matrix}}
     @test stack([1,2,3], 4:6) isa Stacked{Int, 2, <:Tuple{<:Vector, <:UnitRange}}
 
     @test stack([i,2i] for i in 1:5) isa Matrix{Int}
+    @test stack(*, _eachcol(ones(2,4)), 1:4) isa Matrix{Float64}
     @test stack([1,2], [3.0, 4.0], [5im, 6im]) isa Matrix{Number}
 
 end
