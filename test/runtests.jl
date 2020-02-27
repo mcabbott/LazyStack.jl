@@ -179,23 +179,6 @@ end
     @test_throws DimensionMismatch push!(stack([rand(2)]), rand(3))
 
 end
-@info "loading Zygote"
-using Zygote
-@testset "zygote" begin
-
-    @test Zygote.gradient((x,y) -> sum(stack(x,y)), ones(2), ones(2)) == ([1,1], [1,1])
-    @test Zygote.gradient((x,y) -> sum(stack([x,y])), ones(2), ones(2)) == ([1,1], [1,1])
-
-    f399(x) = sum(stack(x) * sum(x))
-    f399c(x) = sum(collect(stack(x)) * sum(x))
-    @test Zygote.gradient(f399, [ones(2), ones(2)]) == ([[4,4], [4,4]],)
-    @test Zygote.gradient(f399c, [ones(2), ones(2)]) == ([[4,4], [4,4]],)
-    ftup(x) = sum(stack(x...) * sum(x))
-    ftupc(x) = sum(collect(stack(x...)) * sum(x))
-    @test Zygote.gradient(ftup, (ones(2), ones(2))) == (([4,4], [4,4]),)
-    @test Zygote.gradient(ftupc, (ones(2), ones(2))) == (([4,4], [4,4]),)
-
-end
 @testset "readme" begin
 
     using LazyStack: Stacked
@@ -223,7 +206,26 @@ end
     @test rstack([1,2], 1:3) == [1 1; 2 2; 0 3]
     @test rstack([[1,2], 1:3], fill=99) == [1 1; 2 2; 99 3]
 
-    @test rstack(1:2, OffsetArray([2,3], 2:3)) == [1 0; 2 2; 0 3]
-    @test rstack(1:2, OffsetArray([0.1,1], 0:1)) == OffsetArray([0 0.1; 1 1.0; 2 0],-1,0)
+    @test rstack(1:2, OffsetArray([2,3], +1)) == [1 0; 2 2; 0 3]
+    @test rstack(1:2, OffsetArray([0.1,1], -1)) == OffsetArray([0 0.1; 1 1.0; 2 0],-1,0)
+
+    @test dimnames(rstack(:b, NamedDimsArray(1:2, :a), OffsetArray([2,3], +1))) == (:a, :b)
+
+end
+@info "loading Zygote"
+using Zygote
+@testset "zygote" begin
+
+    @test Zygote.gradient((x,y) -> sum(stack(x,y)), ones(2), ones(2)) == ([1,1], [1,1])
+    @test Zygote.gradient((x,y) -> sum(stack([x,y])), ones(2), ones(2)) == ([1,1], [1,1])
+
+    f399(x) = sum(stack(x) * sum(x))
+    f399c(x) = sum(collect(stack(x)) * sum(x))
+    @test Zygote.gradient(f399, [ones(2), ones(2)]) == ([[4,4], [4,4]],)
+    @test Zygote.gradient(f399c, [ones(2), ones(2)]) == ([[4,4], [4,4]],)
+    ftup(x) = sum(stack(x...) * sum(x))
+    ftupc(x) = sum(collect(stack(x...)) * sum(x))
+    @test Zygote.gradient(ftup, (ones(2), ones(2))) == (([4,4], [4,4]),)
+    @test Zygote.gradient(ftupc, (ones(2), ones(2))) == (([4,4], [4,4]),)
 
 end
