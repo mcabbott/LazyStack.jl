@@ -145,5 +145,7 @@ end
     @test rstack([1,2], 1:3) == [1 1; 2 2; 0 3]
     @test rstack([[1,2], 1:3], fill=99) == [1 1; 2 2; 99 3]
 
-    # rstack(1:3, OffsetArray([3,4,5], 3:5))
+    @test rstack(1:2, OffsetArray([2,3], 2:3)) == [1 0; 2 2; 0 3]
+    @test rstack(1:2, OffsetArray([0.1,1], 0:1)) == OffsetArray([0 0.1; 1 1.0; 2 0],-1,0)
+
 end

@@ -305,7 +305,35 @@ end
 """
     rstack(arrays; fill=0)
 
-Ragged stack.
+Ragged `stack`, which allows slices of varying size, and fills the gaps with zero
+or the given `fill`. Always returns an `Array`.
+
+```
+julia> rstack(1:n for n in 1:5)
+5×5 Array{Int64,2}:
+ 1  1  1  1  1
+ 0  2  2  2  2
+ 0  0  3  3  3
+ 0  0  0  4  4
+ 0  0  0  0  5
+
+julia> rstack([[1,2,3], [10,20.0]], fill=missing)
+3×2 Array{Union{Missing, Float64},2}:
+ 1.0  10.0
+ 2.0  20.0
+ 3.0    missing
+
+julia> using OffsetArrays
+
+julia> rstack(1:3, OffsetArray([2.0,2.1,2.2], -1), OffsetArray([3.2,3.3,3.4], +1))
+5×3 OffsetArray(::Array{Real,2}, 0:4, 1:3) with eltype Real with indices 0:4×1:3:
+ 0  2.0  0
+ 1  2.1  0
+ 2  2.2  3.2
+ 3  0    3.3
+ 0  0    3.4
+```
+
 """
 rstack(x::AbstractArray, ys::AbstractArray...; kw...) = rstack((x, ys...); kw...)
 rstack(g::Base.Generator; kw...) = rstack(collect(g); kw...)
@@ -320,7 +348,7 @@ function rstack(list::Union{AbstractArray{<:AbstractArray}, Tuple{Vararg{<:Abstr
             Base.OneTo(hi)
         else
             lo = minimum(x -> first(axes(x,d)), list)
-            @show lo:hi
+            lo:hi
         end
     end
     arr = Array{T}(undef, map(length, ax)..., size(list)...)
@@ -332,37 +360,16 @@ function rstack(list::Union{AbstractArray{<:AbstractArray}, Tuple{Vararg{<:Abstr
     end
     for i in tupleindices(list)
         item = list[i...]
-        view(out, axes(item)..., i...) .= item
+        o = ntuple(_->1, N - ndims(item))
+        # view(out, axes(item)..., i...) .= item
+        for I in CartesianIndices(item)
+            out[Tuple(I)..., o..., i...] = item[I]
+        end
     end
     out
 end
 
 tupleindices(t::Tuple) = ((i,) for i in 1:length(t))
 tupleindices(A::AbstractArray) = (Tuple(I) for I in CartesianIndices(A))
-
-#=
-
-julia> off = OffsetArray(rand(Int8,5,2), 1:5, 1:2)
-5×2 OffsetArray(::Array{Int8,2}, 1:5, 1:2) with eltype Int8 with indices 1:5×1:2:
- -99   50
- -49   48
-  -5  -60
-  24   53
-  69   24
-
-julia> view(off, 3:5, 2)
-3-element view(OffsetArray(::Array{Int8,2}, 1:5, 1:2), 3:5, 2) with eltype Int8:
- -60
-  53
-  24
-
-julia> view(off, Base.IdentityUnitRange(3:5), 2)
-3-element view(OffsetArray(::Array{Int8,2}, 1:5, 1:2), :, 2) with eltype Int8 with indices 3:5:
- 24
-  0
- 28
-
-=#
-
 
 end # module
