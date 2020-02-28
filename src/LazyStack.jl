@@ -108,6 +108,15 @@ end
 
 Base.collect(x::Stacked{T,2,<:AbstractArray{<:AbstractArray{T,1}}}) where {T} = reduce(hcat, x.slices)
 
+"""
+    LazyStack.ensure_dense(A)
+
+This `collect`s the result of `stack` if it is a `Stacked` container,
+but does nothing to other arrays, such as those produced by `stack_iter`.
+"""
+ensure_dense(x::Stacked) = collect(x)
+ensure_dense(x::AbstractArray) = x
+
 Base.view(x::Stacked{T,2,<:AbstractArray{<:AbstractArray{T,1}}}, ::Colon, i::Int) where {T} = x.slices[i]
 
 function Base.push!(x::Stacked{T,N,<:AbstractVector}, y::AbstractArray) where {T,N}

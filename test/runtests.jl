@@ -10,6 +10,7 @@ using OffsetArrays, NamedDims
 
     @test stack(v34...) == hcat(v34...)
     @test stack(v34...).slices isa Tuple
+    @test LazyStack.ensure_dense(stack(v34...)) isa Array
 
     @test stack(v34[i] for i in 1:4) == hcat(v34...)
     @test stack(v34[i] for i in 1:4) isa Array
