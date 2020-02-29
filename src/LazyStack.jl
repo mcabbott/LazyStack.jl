@@ -369,10 +369,6 @@ end
     stack(gen), Δ -> error("not yet!")
 end
 
-@adjoint function Base.collect(x::Stacked)
-    collect(x), tuple
-end
-
 #===== CuArrays =====#
 # Send these to stack_iter, by testing  storage_type(first(xs)) <: Array
 
