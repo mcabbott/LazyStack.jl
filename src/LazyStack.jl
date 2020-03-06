@@ -102,6 +102,8 @@ inner_ndims(x::Stacked) = ndims(x) - outer_ndims(x)
     @inbounds getindex(outer, ntuple(d -> inds[d], IN)...)::T
 end
 
+Base.unaliascopy(x::Stacked) = stack(map(Base.unaliascopy, x.slices))
+
 if VERSION >= v"1.1"
     Base.eachcol(x::Stacked{T,2,<:AbstractArray{<:AbstractArray{T,1}}}) where {T} = x.slices
 end
@@ -316,22 +318,6 @@ stack(x::AT) where {AT <: Tuple{Vararg{NamedDimsArray{L,T,IN}}}} where {T,IN,L} 
 
 getnames(xs::Tuple{Vararg{<:NamedDimsArray}}) =
     (dimnames(first(xs))..., :_)
-
-# generators
-#=
-function stack(xs::Base.Generator{<:NamedDimsArray{L}}) where {L}
-    w = stack_iter(xs)
-    l = (ntuple(_ -> :_, ndims(w)-length(L))..., L...)
-    ensure_named(w, l)
-end
-
-function stack(xs::Base.Generator{<:Iterators.ProductIterator{<:Tuple{<:NamedDimsArray}}})
-    w = stack_iter(xs)
-    L = Tuple(Iterators.flatten(map(dimnames, ms.iter.iterators)))
-    l = (ntuple(_ -> :_, ndims(w)-length(L))..., L...)
-    ensure_named(w, l)
-end
-=#
 
 function rewrap_like(A, a::NamedDimsArray{L}) where {L}
     B = rewrap_like(A, parent(a))
