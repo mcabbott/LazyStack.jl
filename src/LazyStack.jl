@@ -453,8 +453,8 @@ function rewrap_names(A, a::NamedDimsArray{L}) where {L}
     B = rewrap_names(A, parent(a))
     ensure_named(B, (L..., ntuple(_ -> :_, ndims(A) - ndims(a))...))
 end
-function rstack(s::Symbol, args...)
-    data = rstack(args...)
+function rstack(s::Symbol, args...; kw...)
+    data = rstack(args...; kw...)
     name_last = ntuple(d -> d==ndims(data) ? s : :_, ndims(data))
     ensure_named(data, name_last)
 end

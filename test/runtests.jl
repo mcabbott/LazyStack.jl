@@ -214,6 +214,7 @@ end
     @test rstack(1:2, OffsetArray([2,3], +1)) == [1 0; 2 2; 0 3]
     @test rstack(1:2, OffsetArray([0.1,1], -1)) == OffsetArray([0 0.1; 1 1.0; 2 0],-1,0)
 
+    @test dimnames(rstack(:b, 1:2, [3,4,5], fill=NaN)) == (:_, :b)
     @test dimnames(rstack(:b, NamedDimsArray(1:2, :a), OffsetArray([2,3], +1))) == (:a, :b)
 
 end
