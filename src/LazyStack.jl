@@ -224,7 +224,7 @@ function vstack_plus(itr)
     v = similar_vector(no_wraps(val), something(n, prod(s)))
     copyto!(v, 1, no_wraps(val), 1, prod(s))
 
-    w = stack_rest(v, 0, n, s, itr, state)::Vector
+    w = stack_rest(v, 0, n, s, itr, state)#::Vector
     w, val
 end
 
