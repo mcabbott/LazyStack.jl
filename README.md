@@ -22,7 +22,7 @@ stack(*, eachcol(ones(2,4)), 1:4)     # == Matrix(stack(map(*, eachcol(...), 1:4
 
 The same `stack_iter` method is also used for any list of arrays of heterogeneous element type,
 and for arrays of tuples. Notice that like `map(identity, Any[1, 1.0, 5im])`, this promotes using 
-`promote_typejoin`, to `Number` here, rather than to `Complex{Float64}`.
+`promote_typejoin`, to `Number` here, rather than to `Complex{Float64}`:
 
 ```julia
 stack([1,2], [3.0, 4.0], [5im, 6im])  # isa Matrix{Number}  # size(ans) == (2, 3)
@@ -32,6 +32,16 @@ stack([(i,2.0,3//j) for i=1:4, j=1:5])# isa Array{Real, 3}  # size(ans) == (3, 4
 The slices must all have the same `size`, but they (and the container) 
 can have any number of dimensions. `stack` always places the slice dimensions first.
 There are no options.
+
+### Ragged stack
+
+There is also a version which does not demand that slices have equal `size` (or equal `ndims`),
+which always returns a new `Array`. You can control the position of slices `using OffsetArrays`:
+
+```julia
+rstack([1:n for n in 1:10])           # upper triangular Matrix{Int}
+rstack(OffsetArray(fill(n,4), rand(-2:2)) for n in 1:10; fill=NaN)
+```
 
 ### Other packages
 
@@ -47,3 +57,5 @@ Besides which, there are several other ways to achieve similar things:
 * For a generator of arrays, the built-in `reduce(hcat,...)` may work, but it slow compared to `stack`: see [test/speed.jl](test/speed.jl) for some examples.
 
 The package [ArraysOfArrays.jl](https://oschulz.github.io/ArraysOfArrays.jl/stable/#section_ArrayOfSimilarArrays-1) solves the opposite problem, of accessing one large array as if it were many slices. As does [`JuliennedArrays.Slices`](https://bramtayl.github.io/JuliennedArrays.jl/latest/#JuliennedArrays.Slices-Union{Tuple{NumberOfDimensions},%20Tuple{Item},%20Tuple{AbstractArray{Item,NumberOfDimensions},Vararg{Int64,N}%20where%20N}}%20where%20NumberOfDimensions%20where%20Item), and of course [`Base.eachslice`](https://docs.julialang.org/en/v1/base/arrays/#Base.eachslice).
+
+Finally, after writing this I learned of [julia/31644](https://github.com/JuliaLang/julia/pull/31644) which extends `reduce(hcat,...)` to work on generators. 

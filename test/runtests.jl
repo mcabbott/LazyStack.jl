@@ -196,6 +196,9 @@ end
     @test stack(*, _eachcol(ones(2,4)), 1:4) isa Matrix{Float64}
     @test stack([1,2], [3.0, 4.0], [5im, 6im]) isa Matrix{Number}
 
+    @test rstack([1:n for n in 1:10]) isa Matrix{Int}
+    @test rstack(OffsetArray(fill(n,4), rand(-2:2)) for n in 1:10; fill=NaN) isa OffsetArray{Real,2}
+
 end
 @testset "vstack" begin
 
