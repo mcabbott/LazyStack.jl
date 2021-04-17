@@ -53,10 +53,15 @@ Besides which, there are several other ways to achieve similar things:
 
 * For an array of arrays, you can also use [`JuliennedArrays.Align`](https://bramtayl.github.io/JuliennedArrays.jl/latest/#JuliennedArrays.Align). This requires (or enables) you to specify which dimensions of the output belong to the sub-arrays, instead of writing `PermutedDimsArray(stack(...), ...)`. 
 * There is also [`RecursiveArrayTools.VectorOfArray`](https://github.com/JuliaDiffEq/RecursiveArrayTools.jl#vectorofarray) which as its name hints only allows a one-dimensional container. Linear indexing retreives a slice, not an element, which is sometimes surprising.
-* And there is [`SplitApplyCombine.combinedimsview`](https://github.com/JuliaData/SplitApplyCombine.jl#combinedimsviewarray), which is very similar to `stack`, but doesn't handle tuples.
 * For a tuple of arrays, [`LazyArrays.Hcat`](https://github.com/JuliaArrays/LazyArrays.jl#concatenation) is at present faster to index than `stack`, but doesn't allow arbitrary dimensions.
 * For a generator of arrays, the built-in `reduce(hcat,...)` may work, but it slow compared to `stack`: see [test/speed.jl](test/speed.jl) for some examples.
 
+And a few more:
+
+* When writing this I missed [`SplitApplyCombine.combinedimsview`](https://github.com/JuliaData/SplitApplyCombine.jl#combinedimsviewarray), which is very similar to `stack`, but doesn't handle tuples.
+* Newer than this is [StackViews.jl](https://github.com/JuliaArrays/StackViews.jl) handles both, with `StackView(A,B,dims=4) == StackView([A,B],4)` creating a 4th dimension; the container is always one-dimensional. 
+* [`Flux.stack`](https://fluxml.ai/Flux.jl/stable/utilities/#Flux.stack) similarly takes a dimension, but eagerly creates an `Array`.
+
 The package [ArraysOfArrays.jl](https://github.com/JuliaArrays/ArraysOfArrays.jl) solves the opposite problem, of accessing one large array as if it were many slices. As does [`JuliennedArrays.Slices`](https://bramtayl.github.io/JuliennedArrays.jl/latest/#JuliennedArrays.Slices-Union{Tuple{NumberOfDimensions},%20Tuple{Item},%20Tuple{AbstractArray{Item,NumberOfDimensions},Vararg{Int64,N}%20where%20N}}%20where%20NumberOfDimensions%20where%20Item), and of course [`Base.eachslice`](https://docs.julialang.org/en/v1/base/arrays/#Base.eachslice).
 
-Finally, after writing this I learned of [julia/31644](https://github.com/JuliaLang/julia/pull/31644) which extends `reduce(hcat,...)` to work on generators. 
+After writing this I learned of [JuliaLang#31644](https://github.com/JuliaLang/julia/pull/31644) which extends `reduce(hcat,...)` to work on generators. Also relevant is [JuliaLang#32310](https://github.com/JuliaLang/julia/pull/32310) which extends `eachslice` to produce a multi-dimensional container.
