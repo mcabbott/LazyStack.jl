@@ -339,19 +339,19 @@ function LazyStack.stack(s::Symbol, args...)
     ensure_named(data, name_last)
 end
 
-#===== Zygote =====#
+#===== Gradients =====#
 
-using ZygoteRules: @adjoint
+using ChainRulesCore: ChainRulesCore, rrule, NoTangent
 
-@adjoint function stack(vec::AbstractArray{<:AbstractArray{<:Any,IN}}) where {IN}
-    stack(vec), Δ -> ([view(Δ, ntuple(_->(:),IN)..., Tuple(I)...) for I in eachindex(vec)],)
+function ChainRulesCore.rrule(::typeof(stack), vec::AbstractArray{<:AbstractArray{<:Any,IN}}) where {IN}
+    stack(vec), Δ -> (NoTangent(), [view(Δ, ntuple(_->(:),IN)..., Tuple(I)...) for I in eachindex(vec)],)
 end
 
-@adjoint function stack(tup::Tuple{Vararg{<:AbstractArray{<:Any,IN}}}) where {IN}
-    stack(tup), Δ -> (ntuple(i -> view(Δ, ntuple(_->(:),IN)..., i), length(tup)),)
+function ChainRulesCore.rrule(::typeof(stack), tup::Tuple{Vararg{<:AbstractArray{<:Any,IN}}}) where {IN}
+    stack(tup), Δ -> (NoTangent(), ntuple(i -> view(Δ, ntuple(_->(:),IN)..., i), length(tup)),)
 end
 
-@adjoint function stack(gen::Base.Generator)
+function ChainRulesCore.rrule(::typeof(stack), gen::Base.Generator)
     stack(gen), Δ -> error("not yet!")
 end
 
