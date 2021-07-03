@@ -64,7 +64,7 @@ end
     @test stack(f1, _eachcol(m1), _eachcol(m1)) == 2 .* m1
     @test stack(f1, _eachcol(m1), 1:10) == m1 .+ (1:10)'
 
-    @test_throws DimensionMismatch map(f1, _eachcol(m1), 1:12)
+    # @test_throws DimensionMismatch map(f1, _eachcol(m1), 1:12) # it doesn't throw!
     @test_throws DimensionMismatch stack(f1, _eachcol(m1), 1:12)
 
     # This is where stack doesn't quite follow map's behaviour:
