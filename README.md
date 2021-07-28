@@ -1,6 +1,7 @@
 # LazyStack.jl
 
-[![Build Status](https://travis-ci.org/mcabbott/LazyStack.jl.svg?branch=master)](https://travis-ci.org/mcabbott/LazyStack.jl)
+[![Travis CI](https://travis-ci.org/mcabbott/LazyStack.jl.svg?branch=master)](https://travis-ci.org/mcabbott/LazyStack.jl)
+[![Github CI](https://github.com/mcabbott/LazyStack.jl/workflows/CI/badge.svg)](https://github.com/mcabbott/LazyStack.jl/actions?query=workflow%3ACI+branch%3Amaster)
 
 This package exports one function, `stack`, for turning a list of arrays 
 into one `AbstractArray`. Given several arrays with the same `eltype`, 
