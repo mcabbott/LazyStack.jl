@@ -1,7 +1,7 @@
 name = "LazyStack"
 uuid = "1fad7336-0346-5a1a-a56f-a06ba010965b"
 authors = ["Michael Abbott"]
-version = "0.0.9"
+version = "0.0.8"
 
 [deps]
 ChainRulesCore = "d360d2e6-b24c-11e9-a2a3-2a2ae2dbcce4"
