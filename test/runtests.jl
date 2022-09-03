@@ -1,5 +1,5 @@
 using Test, LazyStack
-using OffsetArrays # , NamedDims
+using OffsetArrays
 
 @testset "basics" begin
 
@@ -97,32 +97,6 @@ end
     lazystack(acc) isa Array{Int}
 
 end
-# @testset "names" begin
-#
-#     nin = [NamedDimsArray(ones(3), :a) for i in 1:4]
-#     @test dimnames(lazystack(nin)) == (:a, :_)
-#     @test dimnames(lazystack(nin...)) == (:a, :_)
-#     @test dimnames(lazystack(:b, nin)) == (:a, :b)
-#     @test dimnames(lazystack(:b, nin...)) == (:a, :b)
-#     @test lazystack(nin).data.slices[1] isa NamedDimsArray # vector container untouched,
-#     @test lazystack(nin...).data.slices[1] isa Array # but tuple container cleaned up.
-#
-#     nout = NamedDimsArray([ones(3) for i in 1:4], :b)
-#     @test dimnames(lazystack(nout)) == (:_, :b)
-#     @test dimnames(lazystack(:b, nout)) == (:_, :b)
-#     @test_throws Exception lazystack(:c, nout)
-#
-#     nboth = NamedDimsArray([NamedDimsArray(ones(3), :a) for i in 1:4], :b)
-#     @test dimnames(lazystack(nboth)) == (:a, :b)
-#
-#     ngen = (NamedDimsArray(ones(3), :a) for i in 1:4)
-#     @test dimnames(lazystack(ngen)) == (:a, :_)
-#     @test dimnames(lazystack(:b, ngen)) == (:a, :b)
-#
-#     nmat = [NamedDimsArray(ones(3), :a) for i in 1:3, j in 1:4]
-#     @test dimnames(lazystack(:c, nmat)) == (:a, :_, :c)
-#
-# end
 @testset "offset" begin
 
     oin = [OffsetArray(ones(3), 3:5) for i in 1:4]
@@ -141,29 +115,6 @@ end
     @test axes(lazystack(ogen)) == (3:5, 1:4)
 
 end
-# @testset "named offset" begin
-#
-#     noin = [NamedDimsArray(OffsetArray(ones(3), 3:5), :a) for i in 1:4]
-#     @test dimnames(lazystack(noin)) == (:a, :_)
-#     @test dimnames(lazystack(noin...)) == (:a, :_)
-#     @test dimnames(lazystack(:b, noin)) == (:a, :b)
-#     @test dimnames(lazystack(:b, noin...)) == (:a, :b)
-#     @test axes(lazystack(noin)) == (3:5, 1:4)
-#     @test axes(lazystack(noin...)) == (3:5, 1:4)
-#
-#     noout = NamedDimsArray(OffsetArray([ones(3) for i in 1:4], 11:14), :b)
-#     @test dimnames(lazystack(noout)) == (:_, :b)
-#     @test dimnames(lazystack(:b, noout)) == (:_, :b)
-#     @test_throws Exception lazystack(:c, noout)
-#     @test axes(lazystack(noout)) == (1:3, 11:14)
-#     @test axes(copy(lazystack(noout))) ==  (1:3, 11:14)
-#
-#     nogen = (NamedDimsArray(OffsetArray([3,4,5], 3:5), :a) for i in 1:4)
-#     @test dimnames(lazystack(nogen)) == (:a, :_)
-#     @test dimnames(lazystack(:b, nogen)) == (:a, :b)
-#     @test axes(lazystack(nogen)) == (3:5, 1:4)
-#
-# end
 @testset "push!" begin
 
     v34 = [rand(3) for i in 1:4]
@@ -200,15 +151,6 @@ end
     @test raggedstack(OffsetArray(fill(n,4), rand(-2:2)) for n in 1:10; fill=NaN) isa OffsetArray{Real,2}
 
 end
-# @testset "vlazystack" begin
-#
-#     v34 = [rand(3) for i in 1:4]
-#     @test LazyStack.vlazystack(v34) == reduce(vcat, v34)
-#
-#     g234 = (ones(2) .* (10i + j) for i in 1:3, j in 1:4)
-#     @test LazyStack.vlazystack(g234) == reduce(vcat, collect(g234))
-#
-# end
 @testset "ragged" begin
 
     @test raggedstack([1,2], 1:3) == [1 1; 2 2; 0 3]
@@ -216,9 +158,6 @@ end
 
     @test raggedstack(1:2, OffsetArray([2,3], +1)) == [1 0; 2 2; 0 3]
     @test raggedstack(1:2, OffsetArray([0.1,1], -1)) == OffsetArray([0 0.1; 1 1.0; 2 0],-1,0)
-
-    # @test dimnames(raggedstack(:b, 1:2, [3,4,5], fill=NaN)) == (:_, :b)
-    # @test dimnames(raggedstack(:b, NamedDimsArray(1:2, :a), OffsetArray([2,3], +1))) == (:a, :b)
 
 end
 @testset "tuple functions" begin

@@ -29,12 +29,6 @@ _size(A) = Base.size(A)
 _size(t::Tuple) = tuple(length(t))
 _size(t::NamedTuple) = tuple(length(t))
 
-# similar_vector(x::AbstractArray, n::Int) = similar(x, n::Int)
-# similar_vector(x::Tuple, n::Int) = Vector{eltype(x)}(undef, n::Int)
-# similar_vector(x::NamedTuple, n::Int) = Vector{eltype(x)}(undef, n::Int)
-
-# eltype(x::Tuple) = Base.promote_type(x...) # to match choice below
-# eltype(x::NamedTuple) = Base.promote_type(x...)
 
 #===== Slices =====#
 
@@ -163,15 +157,6 @@ end
 
 #===== Iteration =====#
 
-# ITERS = [:Flatten, :Drop, :Filter]
-# for iter in ITERS
-#     @eval _ndims(::Iterators.$iter) = 1
-# end
-# _ndims(gen::Base.Generator) = _ndims(gen.iter)
-# _ndims(zed::Iterators.Zip) = maximum(ndims, zed.is)
-#
-# similar_vector(x, n::Int) = throw(ArgumentError())
-
 """
     lazystack(::Generator)
     lazystack(::Array{T}, ::Array{S}, ...)
@@ -207,64 +192,6 @@ Always uses `Base.stack`.
 lazystack(fun::Function, iter) = Compat.stack(fun, iter)
 lazystack(fun::Function, iters...) = Compat.stack(fun, iters...)
 
-# #===== Offset =====#
-#
-# using OffsetArrays
-#
-# no_offsets(a) = a
-# no_offsets(a::OffsetArray) = parent(a)
-#
-# rewrap_like(A, a) = A
-# function rewrap_like(A, a::OffsetArray)
-#     B = rewrap_like(A, parent(a))
-#     OffsetArray(B, _axes(a)..., _axes(A, _ndims(A)))
-# end
-#
-# no_wraps_or_offsets(a) = no_offsets(no_wraps(a))
-#
-# #===== NamedDims =====#
-#
-# using NamedDims
-#
-# ensure_named(a::AbstractArray, L::Tuple) = NamedDimsArray(a, L)
-# ensure_named(a::NamedDimsArray, L::Tuple) = refine_names(a, L)
-#
-# # array of arrays
-# stack(xs::NamedDimsArray{<:Any,<:AbstractArray}) =
-#     ensure_named(stack(parent(xs)), getnames(xs))
-# stack(x::AT) where {AT <: AbstractArray{<:NamedDimsArray{L,T,IN},ON}} where {T,IN,ON,L} =
-#     ensure_named(Stacked{T, IN+ON, AT}(x), getnames(x))
-#
-# getnames(xs::AbstractArray{<:AbstractArray}) =
-#     (dimnames(eltype(xs))..., dimnames(xs)...)
-#
-# # tuple of arrays
-# stack(x::AT) where {AT <: Tuple{Vararg{NamedDimsArray{L,T,IN}}}} where {T,IN,L} =
-#     ensure_named(stack(map(parent, x)), getnames(x))
-#
-# getnames(xs::Tuple{Vararg{<:NamedDimsArray}}) =
-#     (dimnames(first(xs))..., :_)
-#
-# function rewrap_like(A, a::NamedDimsArray{L}) where {L}
-#     B = rewrap_like(A, parent(a))
-#     ensure_named(B, (L..., ntuple(_ -> :_, _ndims(A) - _ndims(a))...))
-# end
-#
-# no_wraps(a) = a
-# no_wraps(a::NamedDimsArray) = no_wraps(parent(a))
-#
-# """
-#     stack(name, things...)
-#
-# If you give one `name::Symbol` before the pieces to be stacked,
-# this will be the name of the last dimension of the resulting `NamedDimsArray`.
-# (Names attached to slices, and to containers, should also be preserved.)
-# """
-# function LazyStack.stack(s::Symbol, args...)
-#     data = stack(args...)
-#     name_last = ntuple(d -> d==_ndims(data) ? s : :_, _ndims(data))
-#     ensure_named(data, name_last)
-# end
 
 #===== Gradients =====#
 
