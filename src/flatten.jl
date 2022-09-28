@@ -10,6 +10,10 @@ Should be equal to `collect(Iterators.flatten(iter))`, but faster.
 Acting on a vector of vectors, this is equal to `vcat(iter...)` or `reduce(vcat, iter)`,
 and to `vec(stack(iter))` when this is allowed, i.e. when `allequal(length.(iter))`.
 
+!!! Warning
+   `flatten` is an experiment which got committed here by accident, more or less.
+   I'm not sure it's part of the long-term future of LazyStack.
+
 # Examples
 ```
 julia> v = flatten((1:2, 8:9))
@@ -95,6 +99,8 @@ function _typed_flatten(::Type{T}, ::Union{HasShape, HasLength}, A::Union{Abstra
 end
 
 # _typed_flatten(::Type{T}, ::Union{HasShape, HasLength}, A) where {T} = _flatten(collect(A))
+
+# Non-array iterators, whose elements are arrays or tuples, should probably be collected & sent to the above path.
 
 function _typed_flatten(::Type{T}, ::IteratorSize, A) where {T}
     xit = iterate(A)
@@ -296,5 +302,42 @@ vectors of varying eltype
   min 2.646 μs, mean 10.090 μs (2 allocations, 78.17 KiB)
   min 2.713 μs, mean 9.107 μs (2 allocations, 78.17 KiB)
   min 68.750 μs, mean 77.771 μs (9 allocations, 326.55 KiB)
+
+=#
+
+
+#=
+
+julia> f(x, y) = reduce(vcat, map(current -> searchsorted(x, current), y));  # collected
+
+julia> g(x, y) = mapreduce(current -> searchsorted(x, current), vcat, y);  # pairwise
+
+julia> h(x, y) = flatten(current -> searchsorted(x, current), y);  # append!
+
+julia> let
+           Random.seed!(1)
+           list = sort(rand(1:99, 10^6))
+           needed = unique(sort(rand(1:99, 10)))
+           @btime f($list, $needed)   # reduce(vcat, map(...
+           # @btime g($list, $needed) # mapreduce(...
+           @btime h($list, $needed)   # flatten(...
+           @btime flatten([searchsorted($list, current) for current in $needed])
+       end;
+  min 17.958 μs, mean 74.229 μs (4 allocations, 789.84 KiB)
+  min 19.917 μs, mean 57.096 μs (2 allocations, 807.81 KiB)  # here the guess is good
+  min 19.542 μs, mean 72.105 μs (3 allocations, 789.70 KiB)
+
+julia> let
+           Random.seed!(42)
+           list = sort(rand(1:99, 10^6))
+           needed = unique(sort(rand(1:99, 10)))
+           @btime f($list, $needed)   # reduce(vcat, map(...
+           # @btime g($list, $needed) # mapreduce(...
+           @btime h($list, $needed)   # flatten(...
+           @btime flatten([searchsorted($list, current) for current in $needed])
+       end;
+  min 17.791 μs, mean 67.903 μs (4 allocations, 790.41 KiB)
+  min 37.375 μs, mean 128.942 μs (3 allocations, 2.13 MiB)  # here the guess is not so good
+  min 19.417 μs, mean 77.225 μs (3 allocations, 790.27 KiB)
 
 =#
