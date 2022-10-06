@@ -2,7 +2,7 @@
 
 [![Github CI](https://github.com/mcabbott/LazyStack.jl/workflows/CI/badge.svg)](https://github.com/mcabbott/LazyStack.jl/actions?query=workflow%3ACI+branch%3Amaster)
 
-This package exports one function, `lazystack`, for turning a list of arrays 
+This package exports a function `lazystack` for turning a list of arrays 
 into one `AbstractArray`. Given several arrays with the same `eltype`, 
 or an array of such arrays, it returns a lazy `Stacked{T,N}` view of these:
 
@@ -19,12 +19,12 @@ julia> lazystack([pi^ℯ], [ℯ^pi])
 
 Before v0.1 this function used to be called `stack`, but that name is now exported by Base (from Julia 1.9).
 Like this package, `Base.stack` makes an array with `size(result) = (size(inner)..., size(outer)...)`.
-It always returns a new dense array, not a lazy container.
+However, it always returns a new dense array, not a lazy container.
 And instead of two vectors (in the above example) it would want a tuple `stack(([pi^ℯ], [ℯ^pi]))`.
 
 Generators such as `lazystack([i,2i] for i in 1:5)` and arrays of mixed eltype like `lazystack([1,2], [3.0, 4.0], [5im, 6im])` used to be be handled here, making a dense array, but are now simply passed through to `Base.stack`.
 
-When the individual slices aren't backed by an `Array`, as for instance with `CuArray`s on a GPU, then again `Base.stack` is called. 
+When the individual slices aren't backed by an `Array`, as for instance with `CuArray`s on a GPU, then again `Base.stack` is called.
 This should make one big `CuArray`, since scalar indexing of individual slices won't work well.
 
 ### Ragged stack
@@ -59,7 +59,7 @@ Besides which, there are several other ways to achieve similar things:
 
 * For an array of arrays, you can also use [`JuliennedArrays.Align`](https://bramtayl.github.io/JuliennedArrays.jl/latest/#JuliennedArrays.Align). This requires (or enables) you to specify which dimensions of the output belong to the sub-arrays, instead of writing `PermutedDimsArray(stack(...), ...)`. 
 * There is also [`RecursiveArrayTools.VectorOfArray`](https://github.com/JuliaDiffEq/RecursiveArrayTools.jl#vectorofarray) which as its name hints only allows a one-dimensional container. (And unlike the package name, nothing is recursive.) Linear indexing retreives a slice, not an element, which is sometimes surprising.
-* For a tuple of arrays, [`LazyArrays.Hcat`](https://github.com/JuliaArrays/LazyArrays.jl#concatenation) is at present faster to index than `stack`, but doesn't allow arbitrary dimensions.
+* For a tuple of arrays, [`LazyArrays.Hcat`](https://github.com/JuliaArrays/LazyArrays.jl#concatenation) is at present faster to index than `lazystack`, but doesn't allow arbitrary dimensions.
 
 And a few more:
 
@@ -80,6 +80,6 @@ The lazy inverse:
 
 Eager:
 
-* After writing this I learned of [JuliaLang#31644](https://github.com/JuliaLang/julia/pull/31644) which extends `reduce(hcat,...)` to work on generators. 
+* After writing this I learned of [JuliaLang#31644](https://github.com/JuliaLang/julia/pull/31644) which extends `reduce(hcat,...)` to work on generators. (Not merged yet.)
 
-* Later, [JuliaLang#43334](https://github.com/JuliaLang/julia/pull/43334) has added a better version of this package's `stack_iter` method to Base.
+* Later, [JuliaLang#43334](https://github.com/JuliaLang/julia/pull/43334) has added a better version of this package's `stack_iter` method to Base. (Available in Julia 1.9, or in [Compat.jl](https://github.com/JuliaLang/Compat.jl).)
