@@ -87,7 +87,11 @@ lazystack(xs::AbstractArray{IT,ON}) where {IT<:AbstractArray{T,IN}} where {T,IN,
     stack_slices(xs, Val(T), Val(IN+ON))
 lazystack(xs::Tuple{Vararg{AbstractArray{T,IN}}}) where {T,IN} =
     stack_slices(xs, Val(T), Val(IN+1))
+
+# This lets `lazystack([1,2], [3,4])` act like hcat, slightly dodgy?
 lazystack(xs::AbstractArray{T}...) where {T} = lazystack(xs)
+# But `lazystack([1,2])` should not do this, violates equivalence with `Base.stack`.
+lazystack(xs::AbstractArray{<:Number}) = xs
 
 function stack_slices(xs::AT, ::Val{T}, ::Val{N}) where {T,N,AT}
     length(xs) >= 1 || throw(ArgumentError("stacking an empty collection is not allowed"))

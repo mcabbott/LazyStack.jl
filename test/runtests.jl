@@ -30,8 +30,13 @@ end
     @test lazystack(vt) == reshape(1:6, 2,3)
     @test lazystack(vnt) isa Array
 
-    @test lazystack(vt...) isa Array
-    @test lazystack(vnt...) isa Array
+    @test lazystack(vt...) isa Matrix
+    @test lazystack(vnt...) isa Matrix
+
+    lazystack((1,2)) isa Matrix  # case of 1, but do we want this? Not sure
+
+    @test lazystack([1,2], [3,4], [5,6]) isa AbstractMatrix
+    @test lazystack([1,2]) isa Vector  # NB to match Base.stack, https://github.com/mcabbott/LazyStack.jl/issues/15
 
 end
 @testset "generators" begin
