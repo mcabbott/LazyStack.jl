@@ -51,7 +51,7 @@ julia> raggedstack(OffsetArray(fill(1.0n, 3), rand(-1:1)) for n in 1:10; fill=Na
  NaN    NaN    NaN    NaN    NaN    NaN    NaN      8.0  NaN    NaN
 ```
 
-### Other packages
+### Other `stack`-like packages
 
 This one plays well with [OffsetArrays.jl](https://github.com/JuliaArrays/OffsetArrays.jl), and [ChainRules.jl](https://github.com/JuliaDiff/ChainRules.jl)-compatible AD such as [Zygote.jl](https://github.com/FluxML/Zygote.jl). It's also used internally by [TensorCast.jl](https://github.com/mcabbott/TensorCast.jl).
 
@@ -66,7 +66,6 @@ And a few more:
 * When writing this I missed [`SplitApplyCombine.combinedimsview`](https://github.com/JuliaData/SplitApplyCombine.jl#combinedimsviewarray), which is very similar to `stack`, but doesn't handle tuples.
 * Newer than this package is [StackViews.jl](https://github.com/JuliaArrays/StackViews.jl) handles both, with `StackView(A,B,dims=4) == StackView([A,B],4)` creating a 4th dimension; the container is always one-dimensional. 
 * [`Flux.stack`](https://fluxml.ai/Flux.jl/stable/utilities/#Flux.stack) similarly takes a dimension, but eagerly creates an `Array`.
-* Finally, [CatViews.jl](https://github.com/ahwillia/CatViews.jl) offers a lazy `vcat`. But the package is old and I think not so fast.
 
 The lazy inverse:
 
@@ -83,3 +82,9 @@ Eager:
 * After writing this I learned of [JuliaLang#31644](https://github.com/JuliaLang/julia/pull/31644) which extends `reduce(hcat,...)` to work on generators. (Not merged yet.)
 
 * Later, [JuliaLang#43334](https://github.com/JuliaLang/julia/pull/43334) has added a better version of this package's `stack_iter` method to Base. (Available in Julia 1.9, or in [Compat.jl](https://github.com/JuliaLang/Compat.jl).)
+
+### Other `flatten`-like packages:
+
+* [FlexiMaps.flatten](https://gitlab.com/aplavin/FlexiMaps.jl#flatmapflatten) is another eager implementation.
+* [CatViews.jl](https://github.com/ahwillia/CatViews.jl) offers a lazy `vcat`. But the package is old and I think not so fast.
+
