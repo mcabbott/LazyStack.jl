@@ -2,6 +2,8 @@
 export concatenate, concatenate!
 export concatenate1, concatenate2, concatenate2!, concatenate3, concatenate3!
 
+using Base: IteratorSize, HasLength, HasShape, LazyString
+
 # From here, surely this can be done much better:
 # https://github.com/JuliaLang/julia/pull/46003#issuecomment-1181228513
 concatenate1(a::AbstractArray{<:AbstractArray}) = Base.hvncat(size(a), false, a...)
@@ -98,9 +100,26 @@ function concatenate3(A::Union{Tuple, AbstractArray})
     B = similar(x, T, _concatenate_size(A))
     concatenate3!(B, A)
 end
-# For iterators, we need all the sizes to allocate B, so must collect:
-concatenate3(A) = concatenate3(collect(A))
 concatenate3(A::NamedTuple) = concatenate3(Tuple(A))
+# For iterators, we need all the sizes to allocate B, so must collect?
+concatenate3(A) = concatenate3(collect(A)::AbstractArray)
+
+# Could be lazier for a small class of iterators: known 1D, known to make vectors
+# concatenate3(A) = _concatenate3(A, IteratorSize(A), Base.@default_eltype A)
+# _concatenate3(A, ::Unon{HasLength, HasShape{1}}, ::Type{<:AbstractVector}) = flatten(A)
+# _concatenate3(A, ::IteratorSize, ::Type) = concatenate3(collect(A))
+# But hard to find cases where this seems worth it:
+#=
+
+julia> using LazyStack, StaticArrays
+
+julia> @btime concatenate($(SA[i,i^2] for i in 1:100 if iseven(i)));
+  min 823.529 ns, mean 1.361 μs (6 allocations, 4.61 KiB)
+
+julia> @btime flatten($(SA[i,i^2] for i in 1:100 if iseven(i)));
+  min 725.801 ns, mean 770.371 ns (4 allocations, 1.94 KiB)
+
+=#
 
 function _concatenate_size(A::AbstractArray)
     N = max(ndims(A), maximum(ndims, A))
@@ -118,52 +137,66 @@ function _concatenate_size(A::Tuple)
     ntuple(d -> d==1 ? sum(x -> size(x,1), A) : size(A[1], d), N)
 end
 
-    # ntuple(d -> sum(a -> size(a, d), first(eachslice(A, dims=d))), N)  # WRONG
-
-        # Aslice = view(A, ntuple(i -> i==d ? (:) : firstindex(A,i), N)...)
-        # sum(a -> size(a, d), Aslice)
-
-
 _concatenate_arraycheck(x::AbstractArray) = nothing
-_concatenate_arraycheck(x) = throw(ArgumentError("concatenate only works on arrays, got $(typeof(x))"))
+_concatenate_arraycheck(x) = throw(ArgumentError(LazyString("concatenate only works on arrays, got ", typeof(x))))
 
 function concatenate3!(B::AbstractArray, A::Union{Tuple, AbstractVector})
     Base.require_one_based_indexing(B)
     post = ntuple(Returns(:), ndims(B) - 1)
+    postax = Base.tail(axes(B))
     off = 0
     for x in A
         _concatenate_arraycheck(x)
         is = UnitRange(off + 1, off += size(x,1)::Int)
-        B[is, post...] = x
+        # B[is, post...] = x
         # B[is, post...] .= x
-        # copyto!(view(B, is, post...), x)
+        # @inbounds copyto!(view(B, is, post...), x)
+
+        if ndims(x) == ndims(B)
+            copyto!(B, CartesianIndices((is, postax...)), x, CartesianIndices(x))  # very quick when possible!
+        else
+            vB = view(B, is, post...)
+            length(vB) == length(x) || throw(DimensionMismatch("wrong width..."))
+            copyto!(vB, x)
+        end
+
+        # copyto!(B, CartesianIndices((is, postax...)[1:ndims(x)]), x, CartesianIndices(x))  # not a solution
+
+        # xax = (axes(x)..., ntuple(_ -> Base.OneTo(1), ndims(B) - ndims(x))...)
+        # copyto!(B, CartesianIndices((is, postax...)), x, CartesianIndices(xax))  # does not work
     end
+    off == size(B,1) || throw(DimensionMismatch(LazyString(
+        "concatenate expected this column to have ", size(B,1), " rows, but got only ", off)))
     B
 end
 
-    # for a in Base.axes1(A)
-    #     x = A[a]
-    #     _concatenate_arraycheck(x)
-    #     b = UnitRange(off+1, off+=size(x,1))
+# An attempt to go faster in the easy case, could be a branch of the above.
+#=
+function concatenate3!(B::AbstractVector, A::Union{Tuple, AbstractVector})
+    Base.require_one_based_indexing(B)
+    off = 0
+    for x in A
+        _concatenate_arraycheck(x)
 
-    #     # B[b, post...] = x
-    #     copyto!(view(B, b, post...), x)  # slower
-    #     # view(B, b, post...) .= x  # faster
-    # end
+        copyto!(B, off+1, x, firstindex(x), length(x))  # this is 15% slower than B[is] = x, @inbounds no help
+        off += length(x)
 
-# function concatenate3!(B::AbstractArray, A::AbstractMatrix{<:AbstractArray})
-#     Base.require_one_based_indexing(B)
-#     rest = ntuple(_ -> (:), ndims(B)-ndims(A))
-
-#     off2 = 0
-#     for a2 in axes(A,2)
-#         x2 = A[begin, a2]
-#         b2 = UnitRange(off2+1, off2+=size(x2,2))
-
-#         concatenate3!(view(B, :, b2, rest...), view(A, :, a2))
-#     end
-#     B
-# end
+        # is = UnitRange(off + 1, off += size(x,1)::Int)
+        # copyto!(B, is, 1:1, x, eachindex(x), 1:1)  # undocumented method I found?
+        # B[is] = x
+    end
+    off == size(B,1) || throw(DimensionMismatch(LazyString(
+        "concatenate expected this column to have ", size(B,1), " rows, but got only ", off)))
+    B
+end
+=#
+# Or just call the existing code?
+function concatenate3!(B::AbstractVector, A::Base.AbstractVecOrTuple{AbstractVector})
+    # function _typed_vcat!(a::AbstractVector{T}, V::AbstractVecOrTuple{AbstractVector}) where T
+    sum(length, A) == length(B) || throw(DimensionMismatch(LazyString(
+        "concatenate expected this column to have ", length(B), " rows, but got ", sum(length, A) )))
+    Base._typed_vcat!(B, A)
+end
 
 function concatenate3!(B::AbstractArray, A::AbstractArray)
     Base.require_one_based_indexing(B)
@@ -175,20 +208,8 @@ function concatenate3!(B::AbstractArray, A::AbstractArray)
         is = UnitRange(off + 1, off += size(x, ndims(A))::Int)
         concatenate3!(view(B, pre..., is, post...), Aslice)
     end
-    # firsts = ntuple(d -> firstindex(A,d), ndims(A) - 1)
-    # for k in axes(A)[end]
-    #     x = A[firsts..., k]
-    #     is = UnitRange(off + 1, off += size(x, ndims(A)))
-
-    #     concatenate3!(view(B, pre..., is, post...), view(A, pre..., k))
-    # end
     B
 end
-
-
-    # if size(A)[end] == 1  # This doesn't help, and might be wrong:
-    #     return concatenate3!(B, reshape(A, size(A)[1:end-1]...))
-    # end
 
 
 
@@ -204,92 +225,93 @@ concatenate2([1:3, 4:5]) == 1:5
 @code_warntype concatenate3([[1 2], [3 4]])
 
 
-let vecs = [rand(100) for _ in 1:100]
-    @btime concatenate2($vecs)  # pretty good!
-    @btime concatenate3($vecs)
-    @btime reduce(vcat, $vecs)
-    @btime concatenate1($vecs)  # hvncat
-end;
-
-  2.528 μs (2 allocations: 78.17 KiB)
-  2.569 μs (2 allocations: 78.17 KiB)
-  2.611 μs (3 allocations: 79.05 KiB)
-  26.416 μs (18 allocations: 84.12 KiB)
+##### Test cases -- vcat-like
 
 
-let mats = [rand(10,10) for _ in 1:10, _ in 1:10]
-    @btime concatenate2($mats)
-    @btime concatenate3($mats)  # slower with .=
-    @btime stack($mats)   # better access pattern, easier?
-    @btime concatenate1($mats)  # hvncat
-    @btime hvcat(10, $mats...)
-end;
+julia> let vecs = [rand(100) for _ in 1:100]
+           a = @btime concatenate2($vecs)  # pretty good!
+           b = @btime concatenate3($vecs)  # best copyto! version, sans _typed_vcat
+           c = @btime reduce(vcat, $vecs)  # target
+           # @btime concatenate1($vecs)  # hvncat, 10x slower
+           a == b == c
+       end
+  2.477 μs (2 allocations: 78.17 KiB)
+  2.889 μs (2 allocations: 78.17 KiB)
+  2.583 μs (3 allocations: 79.05 KiB)
 
-  13.625 μs (8 allocations: 78.34 KiB)
-  13.916 μs (8 allocations: 78.34 KiB)
-  2.810 μs (3 allocations: 78.23 KiB)
-  58.666 μs (20 allocations: 84.34 KiB)
-  19.708 μs (9 allocations: 80.23 KiB)
-
-
-let mv = [rand(100) for _ in 1:10, _ in 1:10] # now the same pattern, still faster!
-# let mv = [rand(100) for _ in 1:100, _ in 1:1]  # similar results
-    @btime concatenate2($mv)
-    @btime concatenate3($mv)  # faster with .=
-    @btime stack($mv) 
-end;
-  12.250 μs (8 allocations: 78.34 KiB)
-  4.056 μs (8 allocations: 78.34 KiB)  # fast with .=
-  2.778 μs (2 allocations: 78.19 KiB)
+julia> let vm = [rand(10, 10) for _ in 1:100]
+           a = @btime concatenate2($vm)
+           b = @btime concatenate3($vm) 
+           c = @btime reduce(vcat, $vm)  # target -- beaten!
+           @btime stack($vm)   # better access pattern, easier?
+           a == b == c
+       end
+  13.125 μs (4 allocations: 78.27 KiB)
+  6.608 μs (4 allocations: 78.27 KiB)
+  13.000 μs (2 allocations: 78.17 KiB)
+  3.203 μs (2 allocations: 78.19 KiB)
 
 
-let vm = [rand(10, 10) for _ in 1:100]
-    @btime concatenate2($vm)
-    @btime concatenate3($vm) 
-    @btime reduce(vcat, $vm)
-    @btime stack($vm)   # better access pattern, easier?
-end;
-
-  12.791 μs (4 allocations: 78.27 KiB)
-  12.791 μs (4 allocations: 78.27 KiB)
-  12.875 μs (2 allocations: 78.17 KiB)
-  2.819 μs (2 allocations: 78.19 KiB)
+##### Test cases -- hcat-like
 
 
+julia> let rm = [rand(10, 10) for _ in 1:1, _ in 1:100]
+           a = @btime concatenate2($rm)
+           b = @btime concatenate3($rm)
+           c = @btime reduce(hcat, $(vec(rm)))  # target -- very hard to match
+           d = @btime stack($(vec(rm)))         # here the same access pattern, linear copyto!
+           # @btime concatenate3($(vec(adjoint.(rm))'))  # hack? 7.698 μs (2 allocations: 78.17 KiB)
+           a == b == c == reshape(d, 10, :)
+       end
+  14.542 μs (9 allocations: 78.36 KiB)
+  8.778 μs (9 allocations: 78.36 KiB)
+  3.172 μs (2 allocations: 78.17 KiB)
+  2.896 μs (2 allocations: 78.19 KiB)
+true
 
-julia> let m = rand(10)
-         x = ones(5)
-         @btime $m[2:6] = $x
-         @btime $m[2:6] .= $x
-         @btime @views copyto!($m[2:6], $x)
+julia> let rv = [rand(100) for _ in 1:1, _ in 1:100]
+          a = @btime concatenate2($rv)
+          b = @btime concatenate3($rv)
+          c = @btime reduce(hcat, $(vec(rv)))  # target -- far off!
+          d = @btime stack($(vec(rv)))
+          a == b == c == d
+       end
+  12.625 μs (8 allocations: 78.34 KiB)
+  17.458 μs (8 allocations: 78.34 KiB)
+  2.781 μs (2 allocations: 78.17 KiB)
+  2.662 μs (2 allocations: 78.17 KiB)
+true
+
+
+##### Test cases -- hvcat instead?
+
+
+julia> let mats = [rand(10,10) for _ in 1:10, _ in 1:10]
+           @btime concatenate2($mats)
+           @btime concatenate3($mats)    # slower with .=, fast with Cartesian
+           @btime stack($mats; dims=2)   # maybe a comparably hard access pattern?
+           # @btime concatenate1($mats)  # hvncat, 4x slower
+           # @btime hvcat(10, $mats...)  # slower
        end;
-  min 2.500 ns, mean 2.635 ns (0 allocations)
-  min 13.318 ns, mean 13.895 ns (0 allocations)
-  min 13.192 ns, mean 13.374 ns (0 allocations)
+  14.333 μs (8 allocations: 78.34 KiB)
+  8.528 μs (8 allocations: 78.34 KiB)
+  14.291 μs (2 allocations: 78.19 KiB)
 
-julia> let m = rand(10,1)
-         x = ones(5)
-         @btime $m[2:6,:] = $x
-         @btime $m[2:6,:] .= $x
-         @btime @views copyto!($m[2:6,:], $x)
+julia> let mv = [rand(100) for _ in 1:10, _ in 1:10] 
+       # let mv = [rand(100) for _ in 1:100, _ in 1:1]  # similar results
+           @btime concatenate2($mv)
+           @btime concatenate3($mv)  # faster with .=
+           @btime stack($mv)  # the same access pattern, better exploited
        end;
-  min 12.178 ns, mean 12.334 ns (0 allocations)
-  min 5.458 ns, mean 5.605 ns (0 allocations)
-  min 16.115 ns, mean 16.250 ns (0 allocations)
+  12.583 μs (8 allocations: 78.34 KiB)
+  16.666 μs (8 allocations: 78.34 KiB)
+  2.630 μs (2 allocations: 78.19 KiB)
 
-julia> let m = rand(10,10)
-         x = ones(5)
-         @btime $m[2:6,2] = $x
-         @btime $m[2:6,3] .= $x
-         @btime @views copyto!($m[2:6,4], $x)
-       end;
-  min 10.677 ns, mean 10.803 ns (0 allocations)
-  min 15.155 ns, mean 15.288 ns (0 allocations)
-  min 14.570 ns, mean 14.766 ns (0 allocations)
+
+
 
 
 =#
-
 
 
 

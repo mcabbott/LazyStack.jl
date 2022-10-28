@@ -1,7 +1,9 @@
 using Test, LazyStack
 using OffsetArrays
 
-include("flatcat.jl")  # things I'm exploring
+if VERSION >= v"1.8-"
+    include("flatcat.jl")  # things I'm exploring
+end
 
 @testset "basics" begin
 
