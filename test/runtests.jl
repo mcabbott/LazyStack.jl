@@ -1,6 +1,8 @@
 using Test, LazyStack
 using OffsetArrays
 
+include("flatcat.jl")  # things I'm exploring
+
 @testset "basics" begin
 
     v34 = [rand(3) for i in 1:4]

@@ -13,7 +13,7 @@ using Compat
 @deprecate rstack raggedstack
 
 include("flatten.jl")  # probably not permanent, just prototyping here!
-
+include("concatenate.jl")
 
 #===== Tuples =====#
 
