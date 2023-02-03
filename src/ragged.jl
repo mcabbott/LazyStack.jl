@@ -35,7 +35,7 @@ raggedstack(x::AbstractArray, ys::AbstractArray...; kw...) = raggedstack((x, ys.
 raggedstack(g::Base.Generator; kw...) = raggedstack(collect(g); kw...)
 raggedstack(f::Function, ABC...; kw...) = raggedstack(map(f, ABC...); kw...)
 raggedstack(list::AbstractArray{<:AbstractArray}; fill=zero(eltype(first(list)))) = raggedstack_iter(list; fill)
-raggedstack(list::Tuple{Vararg{<:AbstractArray}}; fill=zero(eltype(first(list)))) = raggedstack_iter(list; fill)
+raggedstack(list::Tuple{Vararg{AbstractArray}}; fill=zero(eltype(first(list)))) = raggedstack_iter(list; fill)
 
 function raggedstack_iter(list; fill)
     T = mapreduce(eltype, Base.promote_typejoin, list, init=typeof(fill))
