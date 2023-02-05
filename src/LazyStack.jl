@@ -205,7 +205,7 @@ function ChainRulesCore.rrule(::typeof(lazystack), vec::AbstractArray{<:Abstract
     lazystack(vec), Δ -> (NoTangent(), [view(Δ, ntuple(_->(:),IN)..., Tuple(I)...) for I in eachindex(vec)],)
 end
 
-function ChainRulesCore.rrule(::typeof(lazystack), tup::Tuple{Vararg{<:AbstractArray{<:Any,IN}}}) where {IN}
+function ChainRulesCore.rrule(::typeof(lazystack), tup::Tuple{Vararg{AbstractArray{<:Any,IN}}}) where {IN}
     lazystack(tup), Δ -> (NoTangent(), ntuple(i -> view(Δ, ntuple(_->(:),IN)..., i), length(tup)),)
 end
 
