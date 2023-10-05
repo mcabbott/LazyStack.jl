@@ -5,9 +5,6 @@ export lazystack
 include("ragged.jl")
 export raggedstack
 
-if !isdefined(Base, :LazyString)
-    @eval const LazyString = string
-end
 using Compat
 
 @deprecate stack lazystack false  # don't export it 
