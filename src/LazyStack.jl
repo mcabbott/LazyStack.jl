@@ -2,12 +2,13 @@ module LazyStack
 
 export lazystack
 
-include("ragged.jl")
-export raggedstack
-
 if !isdefined(Base, :LazyString)
     const LazyString = string
 end
+
+include("ragged.jl")
+export raggedstack
+
 using Compat
 
 @deprecate stack lazystack false  # don't export it 
