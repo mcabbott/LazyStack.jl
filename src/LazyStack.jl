@@ -2,10 +2,6 @@ module LazyStack
 
 export lazystack
 
-if !isdefined(Base, :LazyString)
-    const LazyString = string
-end
-
 include("ragged.jl")
 export raggedstack
 

@@ -4,6 +4,8 @@ export concatenate1, concatenate2, concatenate2!, concatenate3, concatenate3!
 
 using Base: IteratorSize, HasLength, HasShape
 
+const LazyString = isdefined(Base, :LazyString) ? Base.LazyString : string
+
 # From here, surely this can be done much better:
 # https://github.com/JuliaLang/julia/pull/46003#issuecomment-1181228513
 concatenate1(a::AbstractArray{<:AbstractArray}) = Base.hvncat(size(a), false, a...)
