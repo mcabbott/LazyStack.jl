@@ -77,6 +77,8 @@ The lazy inverse:
 
 * [`Base.eachslice`](https://docs.julialang.org/en/v1/base/arrays/#Base.eachslice) also views one large array as many slices. This was a generator, but [JuliaLang#32310](https://github.com/JuliaLang/julia/pull/32310) upgrades it to a multi-dimensional indexable container, in Julia 1.9.
 
+* [AwkwardArray.jl](https://github.com/jpivarski/AwkwardArray.jl) fits in here somewhere.
+
 Eager:
 
 * After writing this I learned of [JuliaLang#31644](https://github.com/JuliaLang/julia/pull/31644) which extends `reduce(hcat,...)` to work on generators. (Not merged yet.)
