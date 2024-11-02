@@ -90,3 +90,39 @@ Eager:
 * [FlexiMaps.flatten](https://gitlab.com/aplavin/FlexiMaps.jl#flatmapflatten) is another eager implementation.
 * [CatViews.jl](https://github.com/ahwillia/CatViews.jl) offers a lazy `vcat`. But the package is old and I think not so fast.
 
+### Experiments: `concatenate` & `flatten`
+
+This package also contains a generalisation of `reduce(vcat, A)` to more dimensions:
+
+```julia
+julia> mats = [fill(10i+j, i, j) for i in 1:2, j in 3:5];
+
+julia> concatenate(mats)  # block matrix
+3×12 Matrix{Int64}:
+ 13  13  13  14  14  14  14  15  15  15  15  15
+ 23  23  23  24  24  24  24  25  25  25  25  25
+ 23  23  23  24  24  24  24  25  25  25  25  25
+```
+
+And an eager version of `Iterators.flatten`:
+```julia
+julia> flatten([(1,2), [30 40; 50 60], (; z=700)])
+7-element Vector{Int64}:
+   1
+   2
+  30
+  50
+  40
+  60
+ 700
+
+julia> flatten(i -> fill(10i, i), 0:3)
+6-element Vector{Int64}:
+ 10
+ 20
+ 20
+ 30
+ 30
+ 30
+```
+
