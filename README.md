@@ -89,6 +89,8 @@ Eager:
 
 * [FlexiMaps.flatten](https://gitlab.com/aplavin/FlexiMaps.jl#flatmapflatten) is another eager implementation.
 * [CatViews.jl](https://github.com/ahwillia/CatViews.jl) offers a lazy `vcat`. But the package is old and I think not so fast.
+* [SentinelArrays.jl](https://github.com/JuliaData/SentinelArrays.jl) has a type [`ChainedVector`](https://github.com/JuliaData/SentinelArrays.jl/blob/main/src/chainedvector.jl) which is a lazy `reduce(vcat, vector_of_vectors)`
+
 
 ### Experiments: `concatenate` & `flatten`
 
